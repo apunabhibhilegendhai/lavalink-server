@@ -7,7 +7,7 @@ import {
 import type { SoundyManager } from "../../../client/modules/Manager";
 
 /**
- * Check if a search error is a rate limit or recoverable 5xx error.
+ * Check if a search error is a rate limit, recoverable 5xx error, or empty result.
  * @param result Search result from Lavalink.
  * @param error Optional error thrown by the client.
  */
@@ -33,6 +33,10 @@ export function isRateLimitOrRecoverableSearchError(
 	}
 
 	if (!result) return false;
+
+	if (result.loadType === "empty" || !result.tracks?.length) {
+		return true;
+	}
 
 	if (result.loadType === "error") {
 		const exception = result.exception;

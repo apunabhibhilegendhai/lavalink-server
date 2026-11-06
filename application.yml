@@ -30,7 +30,7 @@ lavalink:
         trackStuckThresholdMs: 10000
         useSeekGhosting: true
         gcWarnings: false
-        youtubeSearchEnabled: false # Disabled in favor of YouTube Music (ytmsearch)
+        youtubeSearchEnabled: false # Handled via dev.lavalink.youtube
         soundcloudSearchEnabled: true
         sources:
             youtube: false # Handled by dev.lavalink.youtube plugin
@@ -63,22 +63,33 @@ plugins:
         allowDirectVideoIds: true
         allowDirectPlaylistIds: true
         clients:
-            - MUSIC
+            - ANDROID
             - ANDROID_VR
             - ANDROID_MUSIC
+            - TVHTML5_SIMPLY
+            - TV
+            - MUSIC
             - WEBEMBEDDED
             - WEB
             - IOS
             - MWEB
-            - TVHTML5_SIMPLY
         clientOptions:
-            MUSIC:
+            ANDROID:
+                playback: true
+                searching: true
+            TV:
                 playback: true
                 searching: true
             ANDROID_VR:
                 playback: true
                 searching: true
             ANDROID_MUSIC:
+                playback: true
+                searching: true
+            TVHTML5_SIMPLY:
+                playback: true
+                searching: true
+            MUSIC:
                 playback: true
                 searching: true
             WEBEMBEDDED:
@@ -88,6 +99,9 @@ plugins:
                 playback: true
                 searching: true
             IOS:
+                playback: true
+                searching: true
+            MWEB:
                 playback: true
                 searching: true
         oauth:
@@ -103,13 +117,15 @@ plugins:
     # --------------------------------------------------------------------------
     lavasrc:
         sources:
-            spotify: false # Disabled in favor of SolaceAudio
+            spotify: false # Handled by SolaceAudio
             applemusic: false
             deezer: false
             yandexmusic: false
             flowerytts: false
             youtube: false
         providers:
+            - "jssearch:\"%ISRC%\""
+            - "jssearch:%QUERY%"
             - "ytmsearch:\"%ISRC%\""
             - "ytmsearch:%QUERY%"
         spotify:
@@ -136,9 +152,10 @@ plugins:
             youtube: false
             flowerytts: false
         providers:
+            - "jssearch:\"{isrc}\""
+            - "jssearch:{query}"
             - "ytmsearch:\"{isrc}\""
             - "ytmsearch:{query}"
-            - "jssearch:{query}"
         spotify:
             countryCode: "IN"
             playlistLoadLimit: 50

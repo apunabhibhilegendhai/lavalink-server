@@ -214,6 +214,8 @@ jobs:
         if: matrix.service == 'lavalink'
         run: |
           END_TIME=$((SECONDS + 330 * 60))
+          echo "Starting real-time Lavalink log stream..."
+          tail -f lavalink.log &
           echo "Keeping Lavalink runner alive for 5.5 hours..."
           while [ $SECONDS -lt $END_TIME ]; do
             if ! kill -0 $LAVALINK_PID 2>/dev/null; then
@@ -310,6 +312,9 @@ jobs:
           # Allow bot 10 seconds to connect and print early output
           sleep 10
           cat bot.log || true
+
+          echo "Starting real-time Soundy bot log stream..."
+          tail -f bot.log &
 
           END_TIME=$((SECONDS + 330 * 60))
           echo "Keeping Soundy bot runner alive for 5.5 hours..."
