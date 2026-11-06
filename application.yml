@@ -63,36 +63,30 @@ plugins:
         allowDirectVideoIds: true
         allowDirectPlaylistIds: true
         clients:
-            - ANDROID
-            - ANDROID_VR
-            - ANDROID_MUSIC
-            - TVHTML5_SIMPLY
-            - TV
             - MUSIC
+            - ANDROID_MUSIC
             - WEBEMBEDDED
+            - ANDROID_VR
+            - TVHTML5_SIMPLY
             - WEB
             - IOS
             - MWEB
+            - ANDROID
+            - TV
         clientOptions:
-            ANDROID:
-                playback: true
-                searching: true
-            TV:
-                playback: true
-                searching: true
-            ANDROID_VR:
+            MUSIC:
                 playback: true
                 searching: true
             ANDROID_MUSIC:
                 playback: true
                 searching: true
-            TVHTML5_SIMPLY:
-                playback: true
-                searching: true
-            MUSIC:
-                playback: true
-                searching: true
             WEBEMBEDDED:
+                playback: true
+                searching: true
+            ANDROID_VR:
+                playback: true
+                searching: true
+            TVHTML5_SIMPLY:
                 playback: true
                 searching: true
             WEB:
@@ -104,9 +98,15 @@ plugins:
             MWEB:
                 playback: true
                 searching: true
+            ANDROID:
+                playback: true
+                searching: true
+            TV:
+                playback: true
+                searching: true
         oauth:
-            enabled: false
-            skipInitialization: true
+            enabled: true
+            skipInitialization: false
             refreshToken: ""
         remoteCipher:
             url: "https://cipher.kikkia.dev"
@@ -124,11 +124,10 @@ plugins:
             flowerytts: false
             youtube: false
         providers:
-            - "dzisrc:\"%ISRC%\""
-            - "dzsearch:%QUERY%"
-            - "jssearch:%QUERY%"
             - "ytmsearch:\"%ISRC%\""
             - "ytmsearch:%QUERY%"
+            - "ytsearch:%QUERY%"
+            - "jssearch:%QUERY%"
         spotify:
             clientId: "YOUR_SPOTIFY_CLIENT_ID"
             clientSecret: "YOUR_SPOTIFY_CLIENT_SECRET"
@@ -140,7 +139,7 @@ plugins:
             localFiles: false
 
     # --------------------------------------------------------------------------
-    # SolaceAudio Plugin (Spotify, Deezer & Indian Streaming - NO PREMIUM NEEDED)
+    # SolaceAudio Plugin (Spotify & Indian Streaming - FULL LENGTH AUDIO)
     # --------------------------------------------------------------------------
     solaceaudio:
         sources:
@@ -148,16 +147,15 @@ plugins:
             jiosaavn: true
             gaana: false
             amazonmusic: false
-            deezer: true # Enabled! Direct original audio stream without IP restrictions
+            deezer: false # Disabled: Deezer preview is strictly 30s clips without premium keys
             pandora: false
             youtube: false
             flowerytts: false
         providers:
-            - "dzisrc:{isrc}"
-            - "dzsearch:{query}"
-            - "jssearch:{query}"
             - "ytmsearch:\"{isrc}\""
             - "ytmsearch:{query}"
+            - "ytsearch:{query}"
+            - "jssearch:{query}"
         spotify:
             countryCode: "IN"
             playlistLoadLimit: 50
@@ -180,7 +178,7 @@ plugins:
             youtube: true
             spotify: true
             deezer: false
-            soundcloud: false
+            soundcloud: true
 
 logging:
     file:
