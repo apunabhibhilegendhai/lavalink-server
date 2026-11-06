@@ -19,7 +19,8 @@ server:
         options:
             socket:
                 TCP_NODELAY: true
-                BACKLOG: 1024
+                BACKLOG: 2048
+                REUSE_ADDRESSES: true
             server:
                 ALWAYS_SET_KEEP_ALIVE: true
                 RECORD_REQUEST_START_TIME: false
@@ -38,7 +39,7 @@ lavalink:
         password: "YOUR_LAVALINK_PASSWORD" # Change this password
         bufferDurationMs: 1000
         frameBufferDurationMs: 5000
-        playerUpdateInterval: 5
+        playerUpdateInterval: 2
         opusEncodingQuality: 10
         resamplingQuality: MEDIUM
         trackStuckThresholdMs: 10000

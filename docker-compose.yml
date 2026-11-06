@@ -6,7 +6,7 @@ services:
     container_name: lavalink
     restart: unless-stopped
     environment:
-      - JAVA_OPTS=-XX:+UseZGC -XX:+ZGenerational -Xms1G -Xmx2G -XX:+AlwaysPreTouch -XX:+UseStringDeduplication -Dio.netty.allocator.type=pooled -Dnetworkaddress.cache.ttl=120
+      - JAVA_OPTS=-XX:+UseZGC -XX:+ZGenerational -Xms1G -Xmx2G -XX:+AlwaysPreTouch -XX:+UseStringDeduplication -Dio.netty.allocator.type=pooled -Dnetworkaddress.cache.ttl=120 -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
       - LAVALINK_SERVER_PASSWORD=${LAVALINK_PASSWORD:-youshallnotpass}
       - PLUGINS_YOUTUBE_OAUTH_REFRESH_TOKEN=${YOUTUBE_REFRESH_TOKEN:-}
     volumes:
@@ -15,7 +15,7 @@ services:
     ports:
       - "4998:4998"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4998/version"]
+      test: ["CMD-SHELL", "curl -sf -H \"Authorization: $${LAVALINK_SERVER_PASSWORD:-youshallnotpass}\" http://localhost:4998/version || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -29,7 +29,7 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared-tunnel
     restart: unless-stopped
-    command: tunnel --protocol http2 --edge-ip-version auto run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    command: tunnel --protocol http2 --edge-ip-version auto --ha-connections 4 run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     depends_on:
       lavalink:
         condition: service_healthy

@@ -74,14 +74,26 @@ jobs:
       - name: Optimize Linux Kernel Network & DNS (Ultra-Low Latency)
         run: |
           echo "Applying Linux kernel socket and network latency optimizations..."
+          # Load Google BBR congestion control & Fair Queuing scheduler
+          sudo modprobe tcp_bbr || true
+          sudo sysctl -w net.core.default_qdisc=fq || true
+          sudo sysctl -w net.ipv4.tcp_congestion_control=bbr || true
+
+          # Maximize connection backlog & reuse
           sudo sysctl -w net.core.somaxconn=65535 || true
           sudo sysctl -w net.ipv4.tcp_max_syn_backlog=65535 || true
           sudo sysctl -w net.core.netdev_max_backlog=10000 || true
           sudo sysctl -w net.ipv4.tcp_fastopen=3 || true
           sudo sysctl -w net.ipv4.tcp_tw_reuse=1 || true
           sudo sysctl -w net.ipv4.tcp_fin_timeout=15 || true
+          sudo sysctl -w net.ipv4.tcp_low_latency=1 || true
+          sudo sysctl -w net.ipv4.tcp_slow_start_after_idle=0 || true
+
+          # High-performance socket buffer limits
           sudo sysctl -w net.core.rmem_max=16777216 || true
           sudo sysctl -w net.core.wmem_max=16777216 || true
+          sudo sysctl -w net.core.rmem_default=262144 || true
+          sudo sysctl -w net.core.wmem_default=262144 || true
           sudo sysctl -w net.ipv4.tcp_rmem="4096 87380 16777216" || true
           sudo sysctl -w net.ipv4.tcp_wmem="4096 65536 16777216" || true
           sudo sysctl -w net.ipv4.udp_rmem_min=16384 || true
@@ -107,9 +119,14 @@ jobs:
             -XX:+AlwaysPreTouch \
             -XX:+UseStringDeduplication \
             -XX:+OptimizeStringConcat \
+            -XX:+UseNUMA \
+            -Djava.net.preferIPv4Stack=true \
+            -Djava.net.preferIPv4Addresses=true \
             -Djdk.net.hosts.resolver=SYSTEM \
             -Dnetworkaddress.cache.ttl=120 \
             -Dnetworkaddress.cache.negative.ttl=5 \
+            -Dsun.net.inetaddr.ttl=120 \
+            -Dsun.net.inetaddr.negative.ttl=5 \
             -Dhttp.keepAlive=true \
             -Dhttp.maxConnections=256 \
             -Dio.netty.allocator.type=pooled \
@@ -148,8 +165,14 @@ jobs:
           CF_CUSTOM_DOMAIN: ${{ secrets.CLOUDFLARE_CUSTOM_DOMAIN }}
         run: |
           if [ -n "$CF_TOKEN" ]; then
-            echo "Starting persistent Cloudflare Named Tunnel..."
-            nohup cloudflared tunnel --protocol http2 --edge-ip-version auto run --token "$CF_TOKEN" > tunnel.log 2>&1 &
+            echo "Starting persistent Cloudflare Named Tunnel (4 HA Edge Connections)..."
+            nohup cloudflared tunnel \
+              --protocol http2 \
+              --edge-ip-version auto \
+              --ha-connections 4 \
+              --heartbeat-count 5 \
+              --heartbeat-interval 5s \
+              run --token "$CF_TOKEN" > tunnel.log 2>&1 &
             echo "TUNNEL_PID=$!" >> $GITHUB_ENV
 
             HOST="${CF_CUSTOM_DOMAIN:-lavalink.opendrive.indevs.in}"
@@ -158,8 +181,14 @@ jobs:
             echo "PUBLIC_SECURE=true" >> $GITHUB_ENV
             echo "PUBLIC_URL=https://$HOST" >> $GITHUB_ENV
           else
-            echo "Starting temporary Cloudflare Quick Tunnel..."
-            nohup cloudflared tunnel --protocol http2 --edge-ip-version auto --url http://127.0.0.1:4998 > tunnel.log 2>&1 &
+            echo "Starting temporary Cloudflare Quick Tunnel (4 HA Edge Connections)..."
+            nohup cloudflared tunnel \
+              --protocol http2 \
+              --edge-ip-version auto \
+              --ha-connections 4 \
+              --heartbeat-count 5 \
+              --heartbeat-interval 5s \
+              --url http://127.0.0.1:4998 > tunnel.log 2>&1 &
             echo "TUNNEL_PID=$!" >> $GITHUB_ENV
 
             TUNNEL_URL=""
