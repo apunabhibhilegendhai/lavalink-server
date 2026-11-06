@@ -95,9 +95,9 @@ plugins:
             ANDROID_VR:
                 searching: false
         oauth:
-            enabled: true
+            enabled: false
             skipInitialization: true
-            refreshToken: "YOUR_YOUTUBE_OAUTH_REFRESH_TOKEN"
+            refreshToken: ""
         remoteCipher:
             url: "https://cipher.kikkia.dev"
             userAgent: "yt-source"

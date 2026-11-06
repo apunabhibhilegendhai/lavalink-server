@@ -65,6 +65,7 @@ jobs:
 
           # Set YouTube OAuth token if provided
           if [ -n "$YT_REFRESH_TOKEN" ]; then
+            sed -i "/oauth:/,/refreshToken:/ s/enabled: false/enabled: true/" application.yml
             sed -i "s|refreshToken: .*|refreshToken: \"${YT_REFRESH_TOKEN}\"|g" application.yml
           fi
 
@@ -97,14 +98,20 @@ jobs:
               READY=true
               break
             fi
+            if ! kill -0 $LAVALINK_PID 2>/dev/null; then
+              echo "::error::Lavalink process crashed during initialization!"
+              cat lavalink.log
+              exit 1
+            fi
             sleep 2
           done
 
           if [ "$READY" = "true" ]; then
             echo "Lavalink is up and running!"
           else
-            echo "::warning::Lavalink startup message not detected yet. Tail of log:"
-            tail -n 30 lavalink.log || true
+            echo "::error::Lavalink failed to become ready in time. Tail of log:"
+            tail -n 40 lavalink.log || true
+            exit 1
           fi
 
       - name: Start Cloudflare Tunnel & Expose Lavalink
