@@ -1,7 +1,7 @@
 # ==============================================================================
 # Lavalink v4 Configuration Template (Standalone / Zero Remote Dependencies)
 # ==============================================================================
-# - Multi-source support: YouTube, Spotify, JioSaavn, SoundCloud, etc.
+# - Multi-source support: YouTube, Spotify, Deezer, JioSaavn, SoundCloud, etc.
 # - Spotify uses internal GraphQL (NO Spotify Developer App or Premium required!)
 # ==============================================================================
 
@@ -113,7 +113,7 @@ plugins:
             userAgent: "yt-source"
 
     # --------------------------------------------------------------------------
-    # LavaSrc Plugin (Spotify)
+    # LavaSrc Plugin (Spotify / Deezer)
     # --------------------------------------------------------------------------
     lavasrc:
         sources:
@@ -124,7 +124,8 @@ plugins:
             flowerytts: false
             youtube: false
         providers:
-            - "jssearch:\"%ISRC%\""
+            - "dzisrc:\"%ISRC%\""
+            - "dzsearch:%QUERY%"
             - "jssearch:%QUERY%"
             - "ytmsearch:\"%ISRC%\""
             - "ytmsearch:%QUERY%"
@@ -139,7 +140,7 @@ plugins:
             localFiles: false
 
     # --------------------------------------------------------------------------
-    # SolaceAudio Plugin (Spotify & Indian Streaming - NO PREMIUM NEEDED)
+    # SolaceAudio Plugin (Spotify, Deezer & Indian Streaming - NO PREMIUM NEEDED)
     # --------------------------------------------------------------------------
     solaceaudio:
         sources:
@@ -147,12 +148,13 @@ plugins:
             jiosaavn: true
             gaana: false
             amazonmusic: false
-            deezer: false
+            deezer: true # Enabled! Direct original audio stream without IP restrictions
             pandora: false
             youtube: false
             flowerytts: false
         providers:
-            - "jssearch:\"{isrc}\""
+            - "dzisrc:{isrc}"
+            - "dzsearch:{query}"
             - "jssearch:{query}"
             - "ytmsearch:\"{isrc}\""
             - "ytmsearch:{query}"
@@ -163,6 +165,12 @@ plugins:
             resolveArtistsInSearch: true
             localFiles: false
             spDc: "YOUR_SPOTIFY_SP_DC_COOKIE"
+        deezer:
+            apiUrl: "https://deezer-plugin-api.vercel.app/api"
+            playlistLoadLimit: 50
+            albumLoadLimit: 50
+            artistLoadLimit: 50
+            searchLimit: 50
 
     # --------------------------------------------------------------------------
     # LavaSearch Plugin (com.github.topi314.lavasearch)

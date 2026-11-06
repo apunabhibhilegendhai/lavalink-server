@@ -8,8 +8,8 @@ const { DATABASE_URL, DATABASE_PASSWORD } = process.env;
 
 export const Configuration: SoundyConfiguration = {
 	defaultPrefix: "!", // Default prefix for commands
-	defaultSearchPlatform: "jssearch", // Default search platform: JioSaavn (direct 320kbps CDN audio stream without cloud IP blocks)
-	fallbackSearchPlatform: "spsearch", // Fallback search platform: Spotify
+	defaultSearchPlatform: "spsearch", // Default search platform: Spotify (100% accurate search for real original songs & artists)
+	fallbackSearchPlatform: "jssearch", // Fallback search platform: JioSaavn
 	defaultVolume: 100, // Default volume for music playback
 	defaultLocale: "en-US", // Default locale for the bot
 	lyricsLines: 10, // Number of lyrics lines to display
