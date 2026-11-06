@@ -142,6 +142,10 @@ plugins:
             - "ytmsearch:%QUERY%"
             - "ytsearch:%QUERY%"
             - "jssearch:%QUERY%"
+        lyrics-sources:
+            spotify: true
+            youtube: true
+            deezer: true
         spotify:
             clientId: "YOUR_SPOTIFY_CLIENT_ID"
             clientSecret: "YOUR_SPOTIFY_CLIENT_SECRET"
@@ -216,7 +220,7 @@ logging:
 
 metrics:
     prometheus:
-        enabled: false
+        enabled: true
         endpoint: /metrics
 
 sentry:

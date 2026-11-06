@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  lavalink:
+    image: ghcr.io/lavalink-devs/lavalink:4.2.2
+    container_name: lavalink
+    restart: unless-stopped
+    environment:
+      - JAVA_OPTS=-XX:+UseZGC -XX:+ZGenerational -Xms1G -Xmx2G -XX:+AlwaysPreTouch -XX:+UseStringDeduplication -Dio.netty.allocator.type=pooled -Dnetworkaddress.cache.ttl=120
+      - LAVALINK_SERVER_PASSWORD=${LAVALINK_PASSWORD:-youshallnotpass}
+      - PLUGINS_YOUTUBE_OAUTH_REFRESH_TOKEN=${YOUTUBE_REFRESH_TOKEN:-}
+    volumes:
+      - ./application.yml:/opt/Lavalink/application.yml:ro
+      - ./plugins:/opt/Lavalink/plugins:ro
+    ports:
+      - "4998:4998"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4998/version"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared-tunnel
+    restart: unless-stopped
+    command: tunnel --protocol http2 --edge-ip-version auto run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      lavalink:
+        condition: service_healthy
