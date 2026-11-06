@@ -11,7 +11,7 @@ server:
     http2:
         enabled: false
     undertow:
-        buffer-size: 8192
+        buffer-size: 16384
         direct-buffers: true
         io-threads: 4
         no-request-timeout: 60000
@@ -22,11 +22,11 @@ lavalink:
     pluginsDir: "./plugins"
     server:
         password: "YOUR_LAVALINK_PASSWORD" # Change this password
-        bufferDurationMs: 400
+        bufferDurationMs: 1500
         frameBufferDurationMs: 5000
         playerUpdateInterval: 5
         opusEncodingQuality: 10
-        resamplingQuality: HIGH
+        resamplingQuality: MEDIUM
         trackStuckThresholdMs: 10000
         useSeekGhosting: true
         gcWarnings: false
@@ -63,11 +63,11 @@ plugins:
         allowDirectVideoIds: true
         allowDirectPlaylistIds: true
         clients:
-            - MUSIC
-            - ANDROID_MUSIC
-            - WEBEMBEDDED
             - ANDROID_VR
             - TVHTML5_SIMPLY
+            - ANDROID_MUSIC
+            - MUSIC
+            - WEBEMBEDDED
             - WEB
             - IOS
             - MWEB
