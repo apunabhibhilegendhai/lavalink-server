@@ -1,8 +1,8 @@
 # 🟢 Live Public Lavalink Node
 
 > **Status**: ONLINE 🟢  
-> **Session Run**: #7  
-> **Last Started**: 2026-11-06 09:13:41 UTC
+> **Session Run**: #8  
+> **Last Started**: 2026-11-06 09:22:07 UTC
 
 ### 🌐 Public Connection Details
 
@@ -14,35 +14,3 @@
 | **SSL / Secure** | `true` |
 | **REST URI** | `https://lavalink.opendrive.indevs.in` |
 | **WebSocket URI** | `wss://lavalink.opendrive.indevs.in:443/v4/websocket` |
-
----
-
-### 🎵 Supported Music Sources
-- **YouTube & YouTube Music**: Full multi-client rotation (MUSIC, ANDROID_MUSIC, TV, TVHTML5_SIMPLY) with Remote Cipher bypass
-- **Spotify**: Fully supported via SolaceAudio GraphQL (no developer app or Premium needed!)
-- **JioSaavn**: Direct native support (`jssearch:`)
-- **SoundCloud**: Enabled
-- **Bandcamp, Twitch, Vimeo, HTTP direct audio streams**: Enabled
-
----
-
-### 🔌 Discord Bot Config Snippet (Python / Wavelink)
-```python
-node = wavelink.Node(
-    uri="https://lavalink.opendrive.indevs.in",
-    password="youshallnotpass"
-)
-await wavelink.Pool.connect(nodes=[node], client=bot)
-```
-
-### 🔌 Discord.js Config Snippet (Kazagurumo / Poru)
-```javascript
-const Nodes = [
-  {
-    name: "Public-Lavalink",
-    url: "lavalink.opendrive.indevs.in:443",
-    auth: "youshallnotpass",
-    secure: true
-  }
-];
-```
