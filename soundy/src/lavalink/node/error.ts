@@ -21,32 +21,23 @@ export default createLavalinkEvent({
 			);
 		}
 
-		if (
-			error.code === "ECONNREFUSED" ||
-			error.code === "ECONNRESET" ||
-			error.code === "ETIMEDOUT"
-		) {
+		if (!node.connected) {
 			client.logger.warn(
-				`[Music] Node ${node.id} connection error, attempting to reconnect in 5s...`,
+				`[Music] Node ${node.id} disconnected, attempting to reconnect in 5s...`,
 			);
 
 			setTimeout(async () => {
 				try {
-					node.connect();
-					client.logger.info(
-						`[Music] Node ${node.id} reconnection attempt initiated`,
-					);
+					if (!node.connected) {
+						await node.connect();
+						client.logger.info(
+							`[Music] Node ${node.id} reconnection attempt initiated`,
+						);
+					}
 				} catch (reconnectError) {
 					client.logger.error(
-						`[Music] Node ${node.id} reconnection failed`,
-						reconnectError,
+						`[Music] Node ${node.id} reconnection failed: ${reconnectError}`,
 					);
-
-					const backoffTime = Math.min(5000, 30000);
-					client.logger.warn(
-						`[Music] Node ${node.id} will try again in ${backoffTime / 1000}s...`,
-					);
-					setTimeout(() => node.connect(), backoffTime);
 				}
 			}, 5000);
 		}

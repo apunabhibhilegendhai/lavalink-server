@@ -282,6 +282,22 @@ jobs:
           sed -i 's/^[ ]\{10\}//' .env
 
           echo "======================================================"
+          echo "📡 Checking Lavalink Node Availability at: https://$LAVALINK_HOST..."
+          echo "======================================================"
+
+          READY=false
+          for i in {1..40}; do
+            STATUS=$(curl -sk -o /dev/null -w "%{http_code}" -H "Authorization: $LAVALINK_PASSWORD" "https://$LAVALINK_HOST/version" || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Lavalink node is online and ready (HTTP 200)!"
+              READY=true
+              break
+            fi
+            echo "Waiting for Lavalink node... (HTTP $STATUS) attempt $i/40"
+            sleep 4
+          done
+
+          echo "======================================================"
           echo "🤖 Starting Soundy Bot..."
           echo "📡 Connecting to Lavalink Node at: $LAVALINK_HOST:$LAVALINK_PORT (SSL: $LAVALINK_SECURE)"
           echo "======================================================"

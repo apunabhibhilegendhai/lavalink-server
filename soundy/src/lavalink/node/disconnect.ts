@@ -12,6 +12,7 @@ export default createLavalinkEvent({
 				`[Music] Failed to send node disconnect webhook: ${err}`,
 			),
 		);
+
 		// Handle node failover for active players
 		const playersOnNode = Array.from(client.manager.players.values()).filter(
 			(player) => player.node?.id === node.id,
@@ -44,5 +45,17 @@ export default createLavalinkEvent({
 				);
 			}
 		}
+
+		// Automatically schedule reconnect
+		setTimeout(async () => {
+			if (!node.connected) {
+				client.logger.info(`[Music] Reconnecting to Lavalink node ${node.id}...`);
+				try {
+					await node.connect();
+				} catch (err) {
+					client.logger.warn(`[Music] Reconnect attempt failed: ${err}`);
+				}
+			}
+		}, 5000);
 	},
 });
