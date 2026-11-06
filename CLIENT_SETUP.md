@@ -229,3 +229,26 @@ To apply filters, send a `PATCH` request to `/v4/sessions/{sessionId}/players/{g
   "filters": {}
 }
 ```
+
+---
+
+## ⚡ 5. Client-Side Ultra-Low Latency Best Practices
+
+To extract the lowest possible playback and control latency from this node:
+
+1. **Opus Direct Passthrough (0ms Transcoding Overhead)**:
+   - When no DSP filters are active and volume is set to `100` (neutral), LavaPlayer skips decoding to raw PCM and re-encoding to Opus entirely.
+   - It streams YouTube/SoundCloud native Opus frames directly into Koe's native UDP dispatch queue.
+   - *Best Practice*: Only send `filters` payload when the user explicitly requests an audio effect.
+
+2. **Pre-Resolve Next Track in Queue**:
+   - Don't wait for a track to end before calling `/v4/loadtracks`.
+   - When a track has ~3-5 seconds remaining, pre-resolve the next queued track in your bot's memory so that `player.play()` can be invoked with 0ms track lookup latency.
+
+3. **Enable Session Resuming**:
+   - Configure session resuming (`resumeTimeout: 60`) on the Lavalink client.
+   - If a transient network glitch occurs, the player state, buffer, and voice connection remain alive in Lavalink, allowing instantaneous reconnection (<50ms) without restarting the audio stream.
+
+4. **Tune WebSocket Heartbeat Interval**:
+   - Set client ping/pong keep-alive heartbeat interval to **30 seconds**.
+   - This keeps Cloudflare Tunnel edge routes and NAT mappings primed, preventing TCP handshake and TLS renegotiation delays.

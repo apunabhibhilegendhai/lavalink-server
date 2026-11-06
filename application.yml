@@ -37,7 +37,7 @@ lavalink:
     pluginsDir: "./plugins"
     server:
         password: "YOUR_LAVALINK_PASSWORD" # Change this password
-        bufferDurationMs: 1000
+        bufferDurationMs: 400
         frameBufferDurationMs: 5000
         playerUpdateInterval: 2
         opusEncodingQuality: 10
