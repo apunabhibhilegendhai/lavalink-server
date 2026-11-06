@@ -31,10 +31,10 @@ lavalink:
         useSeekGhosting: true
         gcWarnings: false
         youtubeSearchEnabled: false # Disabled in favor of YouTube Music (ytmsearch)
-        soundcloudSearchEnabled: false
+        soundcloudSearchEnabled: true
         sources:
             youtube: false # Handled by dev.lavalink.youtube plugin
-            soundcloud: false
+            soundcloud: true
             bandcamp: true
             twitch: true
             vimeo: true
@@ -156,8 +156,8 @@ plugins:
     # --------------------------------------------------------------------------
     lavasearch:
         sources:
-            youtube: false
-            spotify: false
+            youtube: true
+            spotify: true
             deezer: false
             soundcloud: false
 

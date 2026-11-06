@@ -13,7 +13,7 @@ concurrency:
 
 permissions:
   actions: write
-  contents: read
+  contents: write
 
 jobs:
   lavalink:
@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Setup Java 21 LTS
         uses: actions/setup-java@v4
@@ -63,7 +65,7 @@ jobs:
           # Replace password
           sed -i "s|password: .*|password: \"${NODE_PASSWORD}\"|g" application.yml
 
-          # Set YouTube OAuth token if provided
+          # Set YouTube OAuth token if user provided a valid personal token
           if [ -n "$YT_REFRESH_TOKEN" ]; then
             sed -i "/oauth:/,/refreshToken:/ s/enabled: false/enabled: true/" application.yml
             sed -i "s|refreshToken: .*|refreshToken: \"${YT_REFRESH_TOKEN}\"|g" application.yml
@@ -208,6 +210,64 @@ jobs:
           ```
           EOF
 
+          # Publish to NODE_STATUS.md in the repo for easy public viewing
+          cat << EOF > NODE_STATUS.md
+# 🟢 Live Public Lavalink Node
+
+> **Status**: ONLINE 🟢  
+> **Session Run**: #${{ github.run_number }}  
+> **Last Started**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+
+### 🌐 Public Connection Details
+
+| Setting | Value |
+|---|---|
+| **Host** | \`$PUBLIC_HOST\` |
+| **Port** | \`443\` |
+| **Password** | \`$NODE_PASSWORD\` |
+| **SSL / Secure** | \`true\` |
+| **REST URI** | \`$PUBLIC_URL\` |
+| **WebSocket URI** | \`wss://$PUBLIC_HOST:443/v4/websocket\` |
+
+---
+
+### 🎵 Supported Music Sources
+- **YouTube & YouTube Music**: Full multi-client rotation (MUSIC, ANDROID_MUSIC, TV, TVHTML5_SIMPLY) with Remote Cipher bypass
+- **Spotify**: Fully supported via SolaceAudio GraphQL (no developer app or Premium needed!)
+- **JioSaavn**: Direct native support (\`jssearch:\`)
+- **SoundCloud**: Enabled
+- **Bandcamp, Twitch, Vimeo, HTTP direct audio streams**: Enabled
+
+---
+
+### 🔌 Discord Bot Config Snippet (Python / Wavelink)
+\`\`\`python
+node = wavelink.Node(
+    uri="$PUBLIC_URL",
+    password="$NODE_PASSWORD"
+)
+await wavelink.Pool.connect(nodes=[node], client=bot)
+\`\`\`
+
+### 🔌 Discord.js Config Snippet (Kazagurumo / Poru)
+\`\`\`javascript
+const Nodes = [
+  {
+    name: "Public-Lavalink",
+    url: "$PUBLIC_HOST:443",
+    auth: "$NODE_PASSWORD",
+    secure: true
+  }
+];
+\`\`\`
+EOF
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add NODE_STATUS.md
+          git commit -m "docs: update live public node status [skip ci]" || true
+          git push origin main || true
+
           # Send Discord Webhook notification if configured
           if [ -n "$DISCORD_WEBHOOK" ]; then
             echo "Sending Discord notification..."
@@ -216,7 +276,7 @@ jobs:
               \"avatar_url\": \"https://raw.githubusercontent.com/lavalink-devs/Lavalink/master/.github/assets/lavalink-logo.png\",
               \"embeds\": [{
                 \"title\": \"🟢 Lavalink Public Server Online!\",
-                \"description\": \"Your Lavalink audio node has been launched via GitHub Actions.\",
+                \"description\": \"Your Lavalink audio node is online with all platforms enabled (YouTube, Spotify, JioSaavn, SoundCloud).\",
                 \"color\": 3066993,
                 \"fields\": [
                   {\"name\": \"🌐 Host\", \"value\": \"\`$PUBLIC_HOST\`\", \"inline\": false},
@@ -234,7 +294,6 @@ jobs:
       - name: Keep Runner Alive & Monitor Health
         run: |
           # Keep runner alive up to 330 minutes (5.5 hrs)
-          # GitHub Actions timeout is 360 mins; 330 mins gives 30 mins buffer for clean recovery.
           END_TIME=$((SECONDS + 330 * 60))
           echo "Starting 5.5-hour keep-alive loop..."
 

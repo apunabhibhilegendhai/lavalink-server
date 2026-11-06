@@ -4,6 +4,24 @@ A turnkey solution to host and expose a high-performance **Lavalink v4.2.2 Audio
 
 ---
 
+## 🟢 Live Server Status
+
+### 👉 **[Click Here to View Live Public Node Host, Port & Password](NODE_STATUS.md)**
+
+The file [`NODE_STATUS.md`](NODE_STATUS.md) is updated in real time whenever a GitHub Actions session launches.
+
+---
+
+## 🎵 Supported Audio Sources (All Enabled!)
+
+- **YouTube & YouTube Music**: Full multi-client fallback rotation (`MUSIC`, `ANDROID_MUSIC`, `TV`, `TVHTML5_SIMPLY`, `WEBEMBEDDED`, `IOS`, `MWEB`, `WEB`) + **Remote Cipher integration** (`https://cipher.kikkia.dev`) to bypass bot blocks and cipher updates.
+- **Spotify**: Zero-auth GraphQL streaming via **SolaceAudio** (No Spotify Developer API App or Spotify Premium subscription needed!).
+- **JioSaavn**: Native Indian music streaming resolution (`jssearch:`).
+- **SoundCloud**: Enabled for searches and playback.
+- **Bandcamp, Twitch, Vimeo, HTTP Direct Streams**: Fully supported.
+
+---
+
 ## 🌟 Features
 
 - **🚀 Plug & Play GitHub Actions Runner**: Boots Lavalink v4.2.2 with Java 21 LTS in a clean Ubuntu runner.
@@ -11,9 +29,6 @@ A turnkey solution to host and expose a high-performance **Lavalink v4.2.2 Audio
   - **Quick Tunnel (Free & Instant)**: Automatically generates a public HTTPS / WSS endpoint (`https://*.trycloudflare.com`) with zero configuration.
   - **Named Tunnel (Fixed Custom Domain)**: Use a Cloudflare Tunnel token to route traffic to a permanent domain (e.g., `lavalink.yourdomain.com`).
 - **🔁 24/7 Auto-Restart Session Recovery**: Uses a self-dispatching recovery job (patterned from `mercy-discord-bot`) that starts the next session right before GitHub's 6-hour runner limit expires.
-- **🎵 Pre-bundled Audio Plugins**:
-  - **YouTube Plugin**: Remote Cipher integration (`https://cipher.kikkia.dev`) to prevent age-gate / bot blocks.
-  - **SolaceAudio**: Spotify & JioSaavn streaming without needing a Spotify Premium account or Spotify Developer app!
 - **📢 Discord Webhook Alerts**: Automatically sends new host, port, password, and WebSocket URLs to your Discord channel whenever a session launches.
 
 ---
@@ -42,7 +57,7 @@ git init
 git add .
 git commit -m "feat: initial lavalink setup"
 git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPOSITORY.git
+git remote add origin https://github.com/apunabhibhilegendhai/lavalink-server.git
 git push -u origin main
 ```
 
@@ -60,29 +75,19 @@ To allow the workflow to automatically trigger the next run for 24/7 uptime:
 
 ---
 
-### 3. Add GitHub Secrets (Optional but Recommended)
+### 3. Add GitHub Secrets (Optional)
 
 Go to **Settings** → **Secrets and variables** → **Actions** → **New repository secret**:
 
 | Secret Name | Required? | Description |
 |---|---|---|
 | `LAVALINK_PASSWORD` | Optional | Custom Lavalink password (defaults to `youshallnotpass`). |
-| `DISCORD_WEBHOOK_URL` | Optional | Webhook URL to get real-time connection info in your Discord server. |
+| `DISCORD_WEBHOOK_URL` | Optional | Webhook URL to get real-time connection info sent to your Discord channel. |
 | `CLOUDFLARE_TUNNEL_TOKEN` | Optional | Tunnel token from Cloudflare Zero Trust for a **permanent fixed domain**. |
 | `CLOUDFLARE_CUSTOM_DOMAIN` | Optional | Your configured custom domain (e.g., `lavalink.example.com`). |
 | `ACTIONS_TRIGGER_TOKEN` | Optional | Personal Access Token (PAT) with `repo` / `workflow` scope if `GITHUB_TOKEN` is restricted. |
-| `YOUTUBE_REFRESH_TOKEN` | Optional | OAuth refresh token for playing age-restricted/member tracks. |
+| `YOUTUBE_REFRESH_TOKEN` | Optional | Personal OAuth refresh token if you want to play age-restricted/member tracks. |
 | `SPOTIFY_SP_DC` | Optional | Spotify `sp_dc` cookie for higher audio bitrate. |
-
----
-
-### 4. Run the Workflow
-
-1. Go to the **Actions** tab in your GitHub repository.
-2. Select **Lavalink Public 24/7 Server** from the left sidebar.
-3. Click **Run workflow** → Select `main` branch → Click **Run workflow**.
-4. Click on the active workflow run to watch the live logs.
-5. In the **Summary** tab of the workflow, you will see the **Public Host**, **Port**, **Password**, and **WebSocket endpoint**.
 
 ---
 
@@ -101,7 +106,7 @@ bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 
 @bot.event
 async def on_ready():
-    # Replace with the host from your GitHub Actions summary / Discord webhook
+    # Replace with the host from NODE_STATUS.md or your Discord webhook
     node = wavelink.Node(
         uri="https://your-tunnel-url.trycloudflare.com", # or https://lavalink.yourdomain.com
         password="youshallnotpass"
@@ -154,22 +159,3 @@ To have a **permanent static URL** that never changes:
 7. In GitHub Secrets, set `CLOUDFLARE_CUSTOM_DOMAIN` to `lavalink.yourdomain.com`.
 
 Now, every time the GitHub Action restarts, it binds directly to `lavalink.yourdomain.com` without changing URLs!
-
----
-
-## 📁 Repository Structure
-
-```text
-├── .github/
-│   └── workflows/
-│       └── lavalink.yml         # GitHub Actions 24/7 runner + recovery workflow
-├── plugins/                     # Pre-bundled offline JAR plugins
-│   ├── ryuga-lavasearch-plugin.jar
-│   ├── ryuga-lavasrc-plugin.jar
-│   ├── ryuga-youtube-plugin.jar
-│   └── solaceaudio-plugin-1.0.18.jar
-├── application.yml              # Lavalink v4 configuration
-├── application.example.yml      # Backup default configuration
-├── .gitignore
-└── README.md
-```
