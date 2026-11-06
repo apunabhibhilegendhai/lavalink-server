@@ -234,6 +234,8 @@ jobs:
           git push origin main || true
 
       - name: Keep Lavalink Alive & Monitor Health
+        env:
+          NODE_PASSWORD: ${{ secrets.LAVALINK_PASSWORD || 'youshallnotpass' }}
         run: |
           END_TIME=$((SECONDS + 330 * 60))
           echo "Starting real-time Lavalink log stream..."
@@ -250,8 +252,9 @@ jobs:
               tail -n 50 tunnel.log || true
               exit 1
             fi
-            if ! curl -sf http://127.0.0.1:4998/version > /dev/null; then
-              echo "::warning::Lavalink HTTP health check delayed or failed!"
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: $NODE_PASSWORD" http://127.0.0.1:4998/version || echo "000")
+            if [ "$STATUS" != "200" ]; then
+              echo "::warning::Lavalink HTTP health check delayed! Status: $STATUS"
             fi
             sleep 30
           done
