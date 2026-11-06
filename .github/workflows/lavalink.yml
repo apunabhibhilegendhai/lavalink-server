@@ -212,55 +212,56 @@ jobs:
 
           # Publish to NODE_STATUS.md in the repo for easy public viewing
           cat << EOF > NODE_STATUS.md
-# 🟢 Live Public Lavalink Node
+          # 🟢 Live Public Lavalink Node
 
-> **Status**: ONLINE 🟢  
-> **Session Run**: #${{ github.run_number }}  
-> **Last Started**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          > **Status**: ONLINE 🟢  
+          > **Session Run**: #${{ github.run_number }}  
+          > **Last Started**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
 
-### 🌐 Public Connection Details
+          ### 🌐 Public Connection Details
 
-| Setting | Value |
-|---|---|
-| **Host** | \`$PUBLIC_HOST\` |
-| **Port** | \`443\` |
-| **Password** | \`$NODE_PASSWORD\` |
-| **SSL / Secure** | \`true\` |
-| **REST URI** | \`$PUBLIC_URL\` |
-| **WebSocket URI** | \`wss://$PUBLIC_HOST:443/v4/websocket\` |
+          | Setting | Value |
+          |---|---|
+          | **Host** | \`$PUBLIC_HOST\` |
+          | **Port** | \`443\` |
+          | **Password** | \`$NODE_PASSWORD\` |
+          | **SSL / Secure** | \`true\` |
+          | **REST URI** | \`$PUBLIC_URL\` |
+          | **WebSocket URI** | \`wss://$PUBLIC_HOST:443/v4/websocket\` |
 
----
+          ---
 
-### 🎵 Supported Music Sources
-- **YouTube & YouTube Music**: Full multi-client rotation (MUSIC, ANDROID_MUSIC, TV, TVHTML5_SIMPLY) with Remote Cipher bypass
-- **Spotify**: Fully supported via SolaceAudio GraphQL (no developer app or Premium needed!)
-- **JioSaavn**: Direct native support (\`jssearch:\`)
-- **SoundCloud**: Enabled
-- **Bandcamp, Twitch, Vimeo, HTTP direct audio streams**: Enabled
+          ### 🎵 Supported Music Sources
+          - **YouTube & YouTube Music**: Full multi-client rotation (MUSIC, ANDROID_MUSIC, TV, TVHTML5_SIMPLY) with Remote Cipher bypass
+          - **Spotify**: Fully supported via SolaceAudio GraphQL (no developer app or Premium needed!)
+          - **JioSaavn**: Direct native support (\`jssearch:\`)
+          - **SoundCloud**: Enabled
+          - **Bandcamp, Twitch, Vimeo, HTTP direct audio streams**: Enabled
 
----
+          ---
 
-### 🔌 Discord Bot Config Snippet (Python / Wavelink)
-\`\`\`python
-node = wavelink.Node(
-    uri="$PUBLIC_URL",
-    password="$NODE_PASSWORD"
-)
-await wavelink.Pool.connect(nodes=[node], client=bot)
-\`\`\`
+          ### 🔌 Discord Bot Config Snippet (Python / Wavelink)
+          \`\`\`python
+          node = wavelink.Node(
+              uri="$PUBLIC_URL",
+              password="$NODE_PASSWORD"
+          )
+          await wavelink.Pool.connect(nodes=[node], client=bot)
+          \`\`\`
 
-### 🔌 Discord.js Config Snippet (Kazagurumo / Poru)
-\`\`\`javascript
-const Nodes = [
-  {
-    name: "Public-Lavalink",
-    url: "$PUBLIC_HOST:443",
-    auth: "$NODE_PASSWORD",
-    secure: true
-  }
-];
-\`\`\`
-EOF
+          ### 🔌 Discord.js Config Snippet (Kazagurumo / Poru)
+          \`\`\`javascript
+          const Nodes = [
+            {
+              name: "Public-Lavalink",
+              url: "$PUBLIC_HOST:443",
+              auth: "$NODE_PASSWORD",
+              secure: true
+            }
+          ];
+          \`\`\`
+          EOF
+          sed -i 's/^[ ]\{10\}//' NODE_STATUS.md
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
