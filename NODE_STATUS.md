@@ -1,19 +1,19 @@
 # 🟢 Live Public Lavalink Node
 
 > **Status**: ONLINE 🟢  
-> **Session Run**: #6  
-> **Last Started**: 2026-11-06 09:07:03 UTC
+> **Session Run**: #7  
+> **Last Started**: 2026-11-06 09:13:41 UTC
 
 ### 🌐 Public Connection Details
 
 | Setting | Value |
 |---|---|
-| **Host** | `professional-acids-kansas-surprise.trycloudflare.com` |
+| **Host** | `lavalink.opendrive.indevs.in` |
 | **Port** | `443` |
 | **Password** | `youshallnotpass` |
 | **SSL / Secure** | `true` |
-| **REST URI** | `https://professional-acids-kansas-surprise.trycloudflare.com` |
-| **WebSocket URI** | `wss://professional-acids-kansas-surprise.trycloudflare.com:443/v4/websocket` |
+| **REST URI** | `https://lavalink.opendrive.indevs.in` |
+| **WebSocket URI** | `wss://lavalink.opendrive.indevs.in:443/v4/websocket` |
 
 ---
 
@@ -29,7 +29,7 @@
 ### 🔌 Discord Bot Config Snippet (Python / Wavelink)
 ```python
 node = wavelink.Node(
-    uri="https://professional-acids-kansas-surprise.trycloudflare.com",
+    uri="https://lavalink.opendrive.indevs.in",
     password="youshallnotpass"
 )
 await wavelink.Pool.connect(nodes=[node], client=bot)
@@ -40,7 +40,7 @@ await wavelink.Pool.connect(nodes=[node], client=bot)
 const Nodes = [
   {
     name: "Public-Lavalink",
-    url: "professional-acids-kansas-surprise.trycloudflare.com:443",
+    url: "lavalink.opendrive.indevs.in:443",
     auth: "youshallnotpass",
     secure: true
   }
