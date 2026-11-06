@@ -1,4 +1,4 @@
-name: Lavalink Public 24/7 Server
+name: 24/7 Lavalink & Soundy Matrix Services
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ on:
       - master
 
 concurrency:
-  group: lavalink-session
+  group: 247-services
   cancel-in-progress: false
 
 permissions:
@@ -16,9 +16,13 @@ permissions:
   contents: write
 
 jobs:
-  lavalink:
+  service:
     runs-on: ubuntu-latest
     timeout-minutes: 360
+    strategy:
+      matrix:
+        service: [lavalink, soundy]
+      fail-fast: false
 
     steps:
       - name: Checkout Repository
@@ -26,13 +30,18 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Setup Java 21 LTS
+      # ========================================================================
+      # SERVICE 1: LAVALINK AUDIO NODE
+      # ========================================================================
+      - name: Setup Java 21 LTS (Lavalink)
+        if: matrix.service == 'lavalink'
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
 
       - name: Cache Lavalink Core Jar
+        if: matrix.service == 'lavalink'
         id: cache-lavalink
         uses: actions/cache@v4
         with:
@@ -40,60 +49,54 @@ jobs:
           key: lavalink-v4.2.2-jar
 
       - name: Download Lavalink v4.2.2 Jar (if not cached)
-        if: steps.cache-lavalink.outputs.cache-hit != 'true'
+        if: matrix.service == 'lavalink' && steps.cache-lavalink.outputs.cache-hit != 'true'
         run: |
           if [ ! -f "Lavalink.jar" ] || [ $(wc -c < "Lavalink.jar" 2>/dev/null || echo 0) -lt 10000000 ]; then
-            echo "Fetching Lavalink v4.2.2 from GitHub Releases..."
+            echo "Fetching Lavalink v4.2.2..."
             curl -sLo Lavalink.jar https://github.com/lavalink-devs/Lavalink/releases/download/4.2.2/Lavalink.jar
           fi
           ls -lh Lavalink.jar
 
-      - name: Configure application.yml
+      - name: Configure application.yml (Lavalink)
+        if: matrix.service == 'lavalink'
         env:
           NODE_PASSWORD: ${{ secrets.LAVALINK_PASSWORD || 'youshallnotpass' }}
           YT_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN || '' }}
           SP_DC_COOKIE: ${{ secrets.SPOTIFY_SP_DC || '' }}
         run: |
           if [ ! -f "application.yml" ]; then
-            if [ -f "application.example.yml" ]; then
-              cp application.example.yml application.yml
-            else
-              echo "Error: application.yml not found!" && exit 1
-            fi
+            cp application.example.yml application.yml
           fi
 
-          # Replace password
           sed -i "s|password: .*|password: \"${NODE_PASSWORD}\"|g" application.yml
 
-          # Set YouTube OAuth token if user provided a valid personal token
           if [ -n "$YT_REFRESH_TOKEN" ]; then
             sed -i "/oauth:/,/refreshToken:/ s/enabled: false/enabled: true/" application.yml
             sed -i "s|refreshToken: .*|refreshToken: \"${YT_REFRESH_TOKEN}\"|g" application.yml
           fi
 
-          # Set Spotify SP_DC cookie if provided
           if [ -n "$SP_DC_COOKIE" ]; then
             sed -i "s|spDc: .*|spDc: \"${SP_DC_COOKIE}\"|g" application.yml
           fi
 
-          echo "Configuration updated successfully."
-
       - name: Install Cloudflare Tunnel (cloudflared)
+        if: matrix.service == 'lavalink'
         run: |
           curl -sL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared
           chmod +x /usr/local/bin/cloudflared
           cloudflared --version
 
       - name: Start Lavalink Node
+        if: matrix.service == 'lavalink'
         run: |
-          echo "Starting Lavalink process..."
           nohup java -Xmx2G -XX:+UseG1GC -XX:+ParallelRefProcEnabled -jar Lavalink.jar > lavalink.log 2>&1 &
           echo "LAVALINK_PID=$!" >> $GITHUB_ENV
           echo "Lavalink PID: $!"
 
       - name: Wait for Lavalink Ready
+        if: matrix.service == 'lavalink'
         run: |
-          echo "Checking Lavalink initialization..."
+          echo "Waiting for Lavalink initialization..."
           READY=false
           for i in {1..40}; do
             if grep -q "Lavalink is ready to accept connections" lavalink.log 2>/dev/null; then
@@ -101,7 +104,7 @@ jobs:
               break
             fi
             if ! kill -0 $LAVALINK_PID 2>/dev/null; then
-              echo "::error::Lavalink process crashed during initialization!"
+              echo "::error::Lavalink crashed during startup!"
               cat lavalink.log
               exit 1
             fi
@@ -109,14 +112,15 @@ jobs:
           done
 
           if [ "$READY" = "true" ]; then
-            echo "Lavalink is up and running!"
+            echo "Lavalink is online and listening!"
           else
-            echo "::error::Lavalink failed to become ready in time. Tail of log:"
+            echo "::error::Lavalink startup timed out!"
             tail -n 40 lavalink.log || true
             exit 1
           fi
 
       - name: Start Cloudflare Tunnel & Expose Lavalink
+        if: matrix.service == 'lavalink'
         id: tunnel
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
@@ -126,8 +130,8 @@ jobs:
             echo "Starting persistent Cloudflare Named Tunnel..."
             nohup cloudflared tunnel run --token "$CF_TOKEN" > tunnel.log 2>&1 &
             echo "TUNNEL_PID=$!" >> $GITHUB_ENV
-            
-            HOST="${CF_CUSTOM_DOMAIN:-Configured-Cloudflare-Domain}"
+
+            HOST="${CF_CUSTOM_DOMAIN:-lavalink.opendrive.indevs.in}"
             echo "PUBLIC_HOST=$HOST" >> $GITHUB_ENV
             echo "PUBLIC_PORT=443" >> $GITHUB_ENV
             echo "PUBLIC_SECURE=true" >> $GITHUB_ENV
@@ -137,13 +141,10 @@ jobs:
             nohup cloudflared tunnel --url http://127.0.0.1:4998 > tunnel.log 2>&1 &
             echo "TUNNEL_PID=$!" >> $GITHUB_ENV
 
-            echo "Waiting for Quick Tunnel URL..."
             TUNNEL_URL=""
             for i in {1..30}; do
               TUNNEL_URL=$(grep -o 'https://[-a-zA-Z0-9@:%._\+~#=]\+\.trycloudflare\.com' tunnel.log | head -n 1 || true)
-              if [ -n "$TUNNEL_URL" ]; then
-                break
-              fi
+              if [ -n "$TUNNEL_URL" ]; then break; fi
               sleep 2
             done
 
@@ -160,24 +161,16 @@ jobs:
             echo "PUBLIC_URL=$TUNNEL_URL" >> $GITHUB_ENV
           fi
 
-      - name: Announce Connection Details
+      - name: Announce Lavalink Connection Details
+        if: matrix.service == 'lavalink'
         env:
           NODE_PASSWORD: ${{ secrets.LAVALINK_PASSWORD || 'youshallnotpass' }}
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           echo "======================================================"
-          echo "🎉 LAVALINK PUBLIC NODE IS ACTIVE!"
-          echo "======================================================"
-          echo "Host     : $PUBLIC_HOST"
-          echo "Port     : $PUBLIC_PORT"
-          echo "Password : $NODE_PASSWORD"
-          echo "Secure   : $PUBLIC_SECURE"
-          echo "REST URI : $PUBLIC_URL"
-          echo "WS URI   : wss://$PUBLIC_HOST:$PUBLIC_PORT/v4/websocket"
-          echo "Session  : #${{ github.run_number }}"
+          echo "🎉 LAVALINK PUBLIC NODE ONLINE: $PUBLIC_URL"
           echo "======================================================"
 
-          # Output to GitHub Step Summary
           cat << 'EOF' >> $GITHUB_STEP_SUMMARY
           ## 👑 Lavalink Node Active
 
@@ -186,31 +179,11 @@ jobs:
           | **Host** | `${{ env.PUBLIC_HOST }}` |
           | **Port** | `443` |
           | **Password** | `${{ env.NODE_PASSWORD }}` |
-          | **Secure (SSL/WSS)** | `true` |
           | **REST Endpoint** | `${{ env.PUBLIC_URL }}` |
           | **WebSocket Endpoint** | `wss://${{ env.PUBLIC_HOST }}:443/v4/websocket` |
           | **Session #** | `${{ github.run_number }}` |
-
-          ### 🔌 Discord Bot Connection Example (Python / Wavelink)
-          ```python
-          node = wavelink.Node(
-              uri="${{ env.PUBLIC_URL }}",
-              password="${{ env.NODE_PASSWORD }}"
-          )
-          ```
-
-          ### 🔌 Discord.js Connection Example (Kazagurumo / Poru)
-          ```javascript
-          {
-            name: "GitHub-Lavalink",
-            url: "${{ env.PUBLIC_HOST }}:443",
-            auth: "${{ env.NODE_PASSWORD }}",
-            secure: true
-          }
-          ```
           EOF
 
-          # Publish to NODE_STATUS.md in the repo for easy public viewing
           cat << EOF > NODE_STATUS.md
           # 🟢 Live Public Lavalink Node
 
@@ -228,38 +201,6 @@ jobs:
           | **SSL / Secure** | \`true\` |
           | **REST URI** | \`$PUBLIC_URL\` |
           | **WebSocket URI** | \`wss://$PUBLIC_HOST:443/v4/websocket\` |
-
-          ---
-
-          ### 🎵 Supported Music Sources
-          - **YouTube & YouTube Music**: Full multi-client rotation (MUSIC, ANDROID_MUSIC, TV, TVHTML5_SIMPLY) with Remote Cipher bypass
-          - **Spotify**: Fully supported via SolaceAudio GraphQL (no developer app or Premium needed!)
-          - **JioSaavn**: Direct native support (\`jssearch:\`)
-          - **SoundCloud**: Enabled
-          - **Bandcamp, Twitch, Vimeo, HTTP direct audio streams**: Enabled
-
-          ---
-
-          ### 🔌 Discord Bot Config Snippet (Python / Wavelink)
-          \`\`\`python
-          node = wavelink.Node(
-              uri="$PUBLIC_URL",
-              password="$NODE_PASSWORD"
-          )
-          await wavelink.Pool.connect(nodes=[node], client=bot)
-          \`\`\`
-
-          ### 🔌 Discord.js Config Snippet (Kazagurumo / Poru)
-          \`\`\`javascript
-          const Nodes = [
-            {
-              name: "Public-Lavalink",
-              url: "$PUBLIC_HOST:443",
-              auth: "$NODE_PASSWORD",
-              secure: true
-            }
-          ];
-          \`\`\`
           EOF
           sed -i 's/^[ ]\{10\}//' NODE_STATUS.md
 
@@ -269,58 +210,88 @@ jobs:
           git commit -m "docs: update live public node status [skip ci]" || true
           git push origin main || true
 
-          # Send Discord Webhook notification if configured
-          if [ -n "$DISCORD_WEBHOOK" ]; then
-            echo "Sending Discord notification..."
-            curl -s -H "Content-Type: application/json" -X POST "$DISCORD_WEBHOOK" -d "{
-              \"username\": \"Lavalink Node Monitor\",
-              \"avatar_url\": \"https://raw.githubusercontent.com/lavalink-devs/Lavalink/master/.github/assets/lavalink-logo.png\",
-              \"embeds\": [{
-                \"title\": \"🟢 Lavalink Public Server Online!\",
-                \"description\": \"Your Lavalink audio node is online with all platforms enabled (YouTube, Spotify, JioSaavn, SoundCloud).\",
-                \"color\": 3066993,
-                \"fields\": [
-                  {\"name\": \"🌐 Host\", \"value\": \"\`$PUBLIC_HOST\`\", \"inline\": false},
-                  {\"name\": \"🔌 Port\", \"value\": \"\`443\`\", \"inline\": true},
-                  {\"name\": \"🔒 Secure\", \"value\": \"\`true (SSL/WSS)\`\", \"inline\": true},
-                  {\"name\": \"🔑 Password\", \"value\": \"\`$NODE_PASSWORD\`\", \"inline\": true},
-                  {\"name\": \"📡 WebSocket URI\", \"value\": \"\`wss://$PUBLIC_HOST:443/v4/websocket\`\", \"inline\": false},
-                  {\"name\": \"🔁 Session Run\", \"value\": \"#${{ github.run_number }}\", \"inline\": true}
-                ],
-                \"footer\": {\"text\": \"Next session will auto-dispatch in ~5.5 hours\"}
-              }]
-            }" || true
-          fi
-
-      - name: Keep Runner Alive & Monitor Health
+      - name: Keep Lavalink Alive & Monitor Health
+        if: matrix.service == 'lavalink'
         run: |
-          # Keep runner alive up to 330 minutes (5.5 hrs)
           END_TIME=$((SECONDS + 330 * 60))
-          echo "Starting 5.5-hour keep-alive loop..."
-
+          echo "Keeping Lavalink runner alive for 5.5 hours..."
           while [ $SECONDS -lt $END_TIME ]; do
-            # Check Lavalink process
             if ! kill -0 $LAVALINK_PID 2>/dev/null; then
               echo "::error::Lavalink process exited unexpectedly!"
               tail -n 50 lavalink.log || true
               exit 1
             fi
-
-            # Check Tunnel process
             if ! kill -0 $TUNNEL_PID 2>/dev/null; then
-              echo "::error::Cloudflare tunnel process exited unexpectedly!"
+              echo "::error::Tunnel process exited unexpectedly!"
               tail -n 50 tunnel.log || true
               exit 1
             fi
-
             sleep 30
           done
-          echo "Session duration reached. Gracefully exiting to trigger next session..."
 
-  # Recovery job: Automatically dispatches the next session so Lavalink runs 24/7
+      # ========================================================================
+      # SERVICE 2: SOUNDY DISCORD BOT
+      # ========================================================================
+      - name: Setup Bun (Soundy)
+        if: matrix.service == 'soundy'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Soundy Dependencies
+        if: matrix.service == 'soundy'
+        working-directory: soundy
+        run: |
+          echo "Installing Soundy bot dependencies via Bun..."
+          bun install
+
+      - name: Start Soundy Bot Connected to Lavalink
+        if: matrix.service == 'soundy'
+        working-directory: soundy
+        env:
+          TOKEN: ${{ secrets.DISCORD_BOT_TOKEN || secrets.TOKEN }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN || secrets.TOKEN }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'data/soundy-bun.db' }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD || 'local' }}
+          LAVALINK_HOST: ${{ secrets.CLOUDFLARE_CUSTOM_DOMAIN || 'lavalink.opendrive.indevs.in' }}
+          LAVALINK_PORT: '443'
+          LAVALINK_PASSWORD: ${{ secrets.LAVALINK_PASSWORD || 'youshallnotpass' }}
+          LAVALINK_SECURE: 'true'
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL || '' }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::warning::DISCORD_BOT_TOKEN (or TOKEN) is not yet set in GitHub Secrets!"
+            echo "To connect your bot to Discord, please add secret: DISCORD_BOT_TOKEN."
+            echo "The runner will stay in standby so matrix won't fail."
+            sleep 3600
+            exit 0
+          fi
+
+          echo "======================================================"
+          echo "🤖 Starting Soundy Bot..."
+          echo "📡 Connecting to Lavalink Node at: $LAVALINK_HOST:$LAVALINK_PORT (SSL: $LAVALINK_SECURE)"
+          echo "======================================================"
+
+          bun run start &
+          BOT_PID=$!
+          echo "BOT_PID=$BOT_PID" >> $GITHUB_ENV
+
+          END_TIME=$((SECONDS + 330 * 60))
+          echo "Keeping Soundy bot runner alive for 5.5 hours..."
+          while [ $SECONDS -lt $END_TIME ]; do
+            if ! kill -0 $BOT_PID 2>/dev/null; then
+              echo "::error::Soundy bot process stopped unexpectedly!"
+              exit 1
+            fi
+            sleep 30
+          done
+
+  # ============================================================================
+  # RECOVERY JOB (Self-Healing 24/7 Loop)
+  # ============================================================================
   recover:
-    needs: lavalink
-    if: always() && needs.lavalink.result != 'cancelled'
+    needs: service
+    if: always() && needs.service.result != 'cancelled'
     runs-on: ubuntu-latest
     steps:
       - name: Prevent Duplicate Sessions
@@ -335,19 +306,19 @@ jobs:
           active="$(jq --arg current "${CURRENT_RUN_ID}" '[.workflow_runs[] | select((.id | tostring) != $current) | select(.status == "queued" or .status == "in_progress" or .status == "pending")] | length' <<< "$runs")"
           if [ "$active" -gt 0 ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "Another session is already running or queued. Skipping duplicate dispatch."
+            echo "Another session is already running. Skipping duplicate dispatch."
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Dispatch Next Session
+      - name: Dispatch Next Matrix Session
         if: steps.check_active.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.ACTIONS_TRIGGER_TOKEN || github.token }}
           GH_REPOSITORY: ${{ github.repository }}
           BRANCH: ${{ github.ref_name }}
         run: |
-          echo "Dispatching next Lavalink session on branch: $BRANCH..."
+          echo "Dispatching next 24/7 matrix session on branch: $BRANCH..."
           gh api --method POST \
             "repos/${GH_REPOSITORY}/actions/workflows/lavalink.yml/dispatches" \
             -f ref="$BRANCH"
