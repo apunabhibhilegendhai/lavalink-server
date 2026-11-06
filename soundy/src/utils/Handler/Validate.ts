@@ -28,10 +28,10 @@ export function validateEnv() {
 	}
 
 	if (!process.env.DATABASE_URL) {
-		process.env.DATABASE_URL = "data/soundy-bun.db";
+		process.env.DATABASE_URL = "";
 	}
 	if (!process.env.DATABASE_PASSWORD) {
-		process.env.DATABASE_PASSWORD = "local";
+		process.env.DATABASE_PASSWORD = "";
 	}
 
 	return logger.info("Environment variables validated successfully.");

@@ -251,8 +251,8 @@ jobs:
         env:
           TOKEN: ${{ secrets.DISCORD_BOT_TOKEN || secrets.TOKEN }}
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN || secrets.TOKEN }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL || 'data/soundy-bun.db' }}
-          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD || 'local' }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL || '' }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD || '' }}
           LAVALINK_HOST: ${{ secrets.CLOUDFLARE_CUSTOM_DOMAIN || 'lavalink.opendrive.indevs.in' }}
           LAVALINK_PORT: '443'
           LAVALINK_PASSWORD: ${{ secrets.LAVALINK_PASSWORD || 'youshallnotpass' }}

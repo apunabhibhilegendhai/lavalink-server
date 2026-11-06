@@ -188,8 +188,8 @@ export default class Soundy extends Client<true> {
 	 * Start the main Soundy process.
 	 */
 	private async run(): Promise<"🥘"> {
-		await initDatabase();
 		this.setupProcessListeners();
+		await initDatabase();
 
 		getWatermark();
 		this.commands.onCommand = (file) => {

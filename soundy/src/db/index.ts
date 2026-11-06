@@ -22,7 +22,11 @@ export async function cleanOldStats() {
 		await db
 			.delete(schema.userVote)
 			.where(lt(schema.userVote.expiresAt, sql`datetime('now')`));
+		try {
 		await client?.checkpoint?.();
+	} catch {
+		// ignore checkpoint error
+	}
 		pinoLogger.info("[Database] Auto-pruning completed.");
 	} catch (error) {
 		pinoLogger.error(error, "[Database] Auto-cleanup failed");
@@ -32,36 +36,144 @@ export async function cleanOldStats() {
 export async function initDatabase() {
 	if (client) return;
 
-	client = await connect({
-		path: "data/soundy-bun.db",
-		url:
-			Environment.DatabaseUrl ?? "Hmm? Looks like the database URL is missing.",
-		authToken: Environment.DatabasePassword,
-	});
+	const remoteUrl = Environment.DatabaseUrl;
+	const isRemote = Boolean(
+		remoteUrl &&
+		(remoteUrl.startsWith("libsql://") ||
+		 remoteUrl.startsWith("https://") ||
+		 remoteUrl.startsWith("http://"))
+	);
 
-	try {
+	if (isRemote) {
 		pinoLogger.info(
-			"[Database] Performing initial pull from remote Turso database...",
+			`[Database] Connecting to remote Turso database at ${remoteUrl}...`,
 		);
-		await client.pull();
-		await client.checkpoint();
-	} catch (error) {
-		pinoLogger.error(error, "[Database] Initial pull failed");
-	}
+		client = await connect({
+			path: "data/soundy-bun.db",
+			url: remoteUrl,
+			authToken: Environment.DatabasePassword,
+		});
 
-	setInterval(async () => {
 		try {
-			await client.push();
+			pinoLogger.info(
+				"[Database] Performing initial pull from remote Turso database...",
+			);
 			await client.pull();
 			await client.checkpoint();
 		} catch (error) {
-			pinoLogger.error(error, "[Database] Background sync failed");
+			pinoLogger.error(error, "[Database] Initial pull failed");
 		}
-	}, 60000);
+
+		setInterval(async () => {
+			try {
+				await client.push();
+				await client.pull();
+				await client.checkpoint();
+			} catch (error) {
+				pinoLogger.error(error, "[Database] Background sync failed");
+			}
+		}, 60000);
+	} else {
+		pinoLogger.info(
+			"[Database] Starting in local SQLite mode (data/soundy-bun.db)...",
+		);
+		client = await connect({
+			path: "data/soundy-bun.db",
+			url: () => null,
+		});
+		try {
+			await client.checkpoint();
+		} catch {
+			// ignore checkpoint on local init
+		}
+	}
 
 	db = drizzle({ client });
 
 	try {
+		await db.run(sql`
+			CREATE TABLE IF NOT EXISTS guild (
+				id TEXT PRIMARY KEY,
+				locale TEXT,
+				prefix TEXT,
+				default_volume INTEGER,
+				enabled_247 INTEGER NOT NULL DEFAULT 0,
+				channel_247_id TEXT,
+				text_247_id TEXT,
+				setup_channel_id TEXT,
+				setup_text_id TEXT,
+				voice_status INTEGER NOT NULL DEFAULT 1,
+				gapless INTEGER NOT NULL DEFAULT 1,
+				created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+				updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+			)
+		`);
+		await db.run(sql`
+			CREATE TABLE IF NOT EXISTS liked_songs (
+				id TEXT PRIMARY KEY,
+				user_id TEXT NOT NULL,
+				track_id TEXT NOT NULL,
+				title TEXT NOT NULL,
+				author TEXT NOT NULL,
+				uri TEXT NOT NULL,
+				artwork TEXT,
+				length INTEGER,
+				is_stream INTEGER DEFAULT 0,
+				liked_at TEXT DEFAULT CURRENT_TIMESTAMP
+			)
+		`);
+		await db.run(sql`
+			CREATE TABLE IF NOT EXISTS playlist (
+				id TEXT PRIMARY KEY,
+				user_id TEXT NOT NULL,
+				name TEXT NOT NULL,
+				created_at TEXT DEFAULT CURRENT_TIMESTAMP
+			)
+		`);
+		await db.run(sql`
+			CREATE TABLE IF NOT EXISTS playlist_track (
+				id TEXT PRIMARY KEY,
+				url TEXT NOT NULL,
+				playlist_id TEXT NOT NULL REFERENCES playlist(id) ON DELETE CASCADE,
+				info TEXT
+			)
+		`);
+		await db.run(sql`
+			CREATE TABLE IF NOT EXISTS track_stats (
+				id TEXT PRIMARY KEY,
+				track_id TEXT NOT NULL,
+				title TEXT NOT NULL,
+				author TEXT NOT NULL,
+				uri TEXT NOT NULL,
+				artwork TEXT,
+				length INTEGER,
+				is_stream INTEGER DEFAULT 0,
+				user_id TEXT NOT NULL,
+				play_count INTEGER NOT NULL DEFAULT 1,
+				guild_id TEXT NOT NULL,
+				last_played TEXT DEFAULT CURRENT_TIMESTAMP,
+				created_at TEXT DEFAULT CURRENT_TIMESTAMP
+			)
+		`);
+		await db.run(sql`
+			CREATE TABLE IF NOT EXISTS user_stats (
+				id TEXT PRIMARY KEY,
+				user_id TEXT NOT NULL,
+				guild_id TEXT NOT NULL,
+				play_count INTEGER NOT NULL DEFAULT 1,
+				last_played TEXT DEFAULT CURRENT_TIMESTAMP,
+				created_at TEXT DEFAULT CURRENT_TIMESTAMP
+			)
+		`);
+		await db.run(sql`
+			CREATE TABLE IF NOT EXISTS user_vote (
+				id TEXT PRIMARY KEY,
+				user_id TEXT NOT NULL,
+				voted_at TEXT DEFAULT CURRENT_TIMESTAMP,
+				expires_at TEXT NOT NULL,
+				type TEXT NOT NULL DEFAULT 'vote'
+			)
+		`);
 		await db.run(sql`
 			CREATE TABLE IF NOT EXISTS user_listening_friends (
 				id TEXT PRIMARY KEY,
