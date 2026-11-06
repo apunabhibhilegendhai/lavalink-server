@@ -1,0 +1,13 @@
+# Lavalink & Java artifacts
+Lavalink.jar
+*.log
+logs/
+.cache/
+
+# Sensitive local configurations
+application.yml.local
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
