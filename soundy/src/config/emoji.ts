@@ -46,3 +46,5 @@ export type Emoji = keyof EmojiConfig;
  
  * Credits:
  * - DEV by: Crystala
+
+ */

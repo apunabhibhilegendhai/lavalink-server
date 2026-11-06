@@ -267,20 +267,40 @@ jobs:
             exit 0
           fi
 
+          echo "Generating soundy/.env file for dotenvx..."
+          cat << EOF > .env
+          TOKEN=${TOKEN}
+          DISCORD_BOT_TOKEN=${TOKEN}
+          DATABASE_URL=${DATABASE_URL}
+          DATABASE_PASSWORD=${DATABASE_PASSWORD}
+          LAVALINK_HOST=${LAVALINK_HOST}
+          LAVALINK_PORT=${LAVALINK_PORT}
+          LAVALINK_PASSWORD=${LAVALINK_PASSWORD}
+          LAVALINK_SECURE=${LAVALINK_SECURE}
+          DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+          EOF
+          sed -i 's/^[ ]\{10\}//' .env
+
           echo "======================================================"
           echo "🤖 Starting Soundy Bot..."
           echo "📡 Connecting to Lavalink Node at: $LAVALINK_HOST:$LAVALINK_PORT (SSL: $LAVALINK_SECURE)"
           echo "======================================================"
 
-          bun run start &
+          bun run start > bot.log 2>&1 &
           BOT_PID=$!
           echo "BOT_PID=$BOT_PID" >> $GITHUB_ENV
+          echo "Bot PID: $BOT_PID"
+
+          # Allow bot 10 seconds to connect and print early output
+          sleep 10
+          cat bot.log || true
 
           END_TIME=$((SECONDS + 330 * 60))
           echo "Keeping Soundy bot runner alive for 5.5 hours..."
           while [ $SECONDS -lt $END_TIME ]; do
             if ! kill -0 $BOT_PID 2>/dev/null; then
-              echo "::error::Soundy bot process stopped unexpectedly!"
+              echo "::error::Soundy bot process stopped unexpectedly! Output log:"
+              cat bot.log || true
               exit 1
             fi
             sleep 30
