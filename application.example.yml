@@ -64,36 +64,32 @@ plugins:
         allowDirectPlaylistIds: true
         clients:
             - MUSIC
-            - ANDROID_MUSIC
-            - TV
-            - TVHTML5_SIMPLY
             - ANDROID_VR
+            - ANDROID_MUSIC
             - WEBEMBEDDED
+            - WEB
             - IOS
             - MWEB
-            - WEB
+            - TVHTML5_SIMPLY
         clientOptions:
             MUSIC:
+                playback: true
+                searching: true
+            ANDROID_VR:
+                playback: true
                 searching: true
             ANDROID_MUSIC:
+                playback: true
                 searching: true
-            TV:
-                searching: false
-                playback: true
-            TVHTML5_SIMPLY:
-                searching: false
-                playback: true
-            WEB:
-                searching: false
-                playback: false
             WEBEMBEDDED:
-                searching: false
+                playback: true
+                searching: true
+            WEB:
+                playback: true
+                searching: true
             IOS:
-                searching: false
-            MWEB:
-                searching: false
-            ANDROID_VR:
-                searching: false
+                playback: true
+                searching: true
         oauth:
             enabled: false
             skipInitialization: true

@@ -8,8 +8,8 @@ const { DATABASE_URL, DATABASE_PASSWORD } = process.env;
 
 export const Configuration: SoundyConfiguration = {
 	defaultPrefix: "!", // Default prefix for commands
-	defaultSearchPlatform: "spotify", // Default search platform for music commands
-	fallbackSearchPlatform: "youtube", // Fallback search platform when default is rate limited or errors
+	defaultSearchPlatform: "ytmsearch", // Default search platform for music commands
+	fallbackSearchPlatform: "spotify", // Fallback search platform when default is rate limited or errors
 	defaultVolume: 100, // Default volume for music playback
 	defaultLocale: "en-US", // Default locale for the bot
 	lyricsLines: 10, // Number of lyrics lines to display
