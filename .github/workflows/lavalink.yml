@@ -71,15 +71,52 @@ jobs:
             sed -i "s|spDc: .*|spDc: \"${SP_DC_COOKIE}\"|g" application.yml
           fi
 
+      - name: Optimize Linux Kernel Network & DNS (Ultra-Low Latency)
+        run: |
+          echo "Applying Linux kernel socket and network latency optimizations..."
+          sudo sysctl -w net.core.somaxconn=65535 || true
+          sudo sysctl -w net.ipv4.tcp_max_syn_backlog=65535 || true
+          sudo sysctl -w net.core.netdev_max_backlog=10000 || true
+          sudo sysctl -w net.ipv4.tcp_fastopen=3 || true
+          sudo sysctl -w net.ipv4.tcp_tw_reuse=1 || true
+          sudo sysctl -w net.ipv4.tcp_fin_timeout=15 || true
+          sudo sysctl -w net.core.rmem_max=16777216 || true
+          sudo sysctl -w net.core.wmem_max=16777216 || true
+          sudo sysctl -w net.ipv4.tcp_rmem="4096 87380 16777216" || true
+          sudo sysctl -w net.ipv4.tcp_wmem="4096 65536 16777216" || true
+          sudo sysctl -w net.ipv4.udp_rmem_min=16384 || true
+          sudo sysctl -w net.ipv4.udp_wmem_min=16384 || true
+          ulimit -n 65535 || true
+
+          echo "Injecting ultra-fast Anycast DNS (Cloudflare 1.1.1.1 & Google 8.8.8.8)..."
+          sudo sed -i '1i nameserver 1.1.1.1\nnameserver 1.0.0.1\nnameserver 8.8.8.8' /etc/resolv.conf || true
+
       - name: Install Cloudflare Tunnel (cloudflared)
         run: |
           curl -sL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared
           chmod +x /usr/local/bin/cloudflared
           cloudflared --version
 
-      - name: Start Lavalink Node
+      - name: Start Lavalink Node (Java 21 Generational ZGC Ultra-Low Latency)
         run: |
-          nohup java -Xmx2G -XX:+UseG1GC -XX:+ParallelRefProcEnabled -jar Lavalink.jar > lavalink.log 2>&1 &
+          nohup java \
+            -XX:+UseZGC \
+            -XX:+ZGenerational \
+            -Xms1G \
+            -Xmx2G \
+            -XX:+AlwaysPreTouch \
+            -XX:+UseStringDeduplication \
+            -XX:+OptimizeStringConcat \
+            -Djdk.net.hosts.resolver=SYSTEM \
+            -Dnetworkaddress.cache.ttl=120 \
+            -Dnetworkaddress.cache.negative.ttl=5 \
+            -Dhttp.keepAlive=true \
+            -Dhttp.maxConnections=256 \
+            -Dio.netty.allocator.type=pooled \
+            -Dio.netty.allocator.numDirectArenas=4 \
+            -Dio.netty.noPreferDirect=false \
+            -Dio.netty.recycler.maxCapacityPerThread=4096 \
+            -jar Lavalink.jar > lavalink.log 2>&1 &
           echo "LAVALINK_PID=$!" >> $GITHUB_ENV
           echo "Lavalink PID: $!"
 
@@ -104,7 +141,7 @@ jobs:
             exit 1
           fi
 
-      - name: Start Cloudflare Tunnel & Expose Lavalink
+      - name: Start Cloudflare Tunnel & Expose Lavalink (Low-Jitter HTTP/2 Transport)
         id: tunnel
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
@@ -112,7 +149,7 @@ jobs:
         run: |
           if [ -n "$CF_TOKEN" ]; then
             echo "Starting persistent Cloudflare Named Tunnel..."
-            nohup cloudflared tunnel run --token "$CF_TOKEN" > tunnel.log 2>&1 &
+            nohup cloudflared tunnel --protocol http2 --edge-ip-version auto run --token "$CF_TOKEN" > tunnel.log 2>&1 &
             echo "TUNNEL_PID=$!" >> $GITHUB_ENV
 
             HOST="${CF_CUSTOM_DOMAIN:-lavalink.opendrive.indevs.in}"
@@ -122,7 +159,7 @@ jobs:
             echo "PUBLIC_URL=https://$HOST" >> $GITHUB_ENV
           else
             echo "Starting temporary Cloudflare Quick Tunnel..."
-            nohup cloudflared tunnel --url http://127.0.0.1:4998 > tunnel.log 2>&1 &
+            nohup cloudflared tunnel --protocol http2 --edge-ip-version auto --url http://127.0.0.1:4998 > tunnel.log 2>&1 &
             echo "TUNNEL_PID=$!" >> $GITHUB_ENV
 
             TUNNEL_URL=""
@@ -163,6 +200,8 @@ jobs:
           | **Password** | `${{ env.NODE_PASSWORD }}` |
           | **REST Endpoint** | `${{ env.PUBLIC_URL }}` |
           | **WebSocket Endpoint** | `wss://${{ env.PUBLIC_HOST }}:443/v4/websocket` |
+          | **GC Engine** | `Java 21 Generational ZGC (<1ms)` |
+          | **Voice Transport** | `Netty Native C-Epoll` |
           | **Session #** | `${{ github.run_number }}` |
           EOF
 
@@ -183,6 +222,8 @@ jobs:
           | **SSL / Secure** | \`true\` |
           | **REST URI** | \`$PUBLIC_URL\` |
           | **WebSocket URI** | \`wss://$PUBLIC_HOST:443/v4/websocket\` |
+          | **GC Engine** | \`Java 21 Generational ZGC (<1ms pauses)\` |
+          | **Transport** | \`Netty Native Linux Epoll\` |
           EOF
           sed -i 's/^[ ]\{10\}//' NODE_STATUS.md
 
@@ -208,6 +249,9 @@ jobs:
               echo "::error::Tunnel process exited unexpectedly!"
               tail -n 50 tunnel.log || true
               exit 1
+            fi
+            if ! curl -sf http://127.0.0.1:4998/version > /dev/null; then
+              echo "::warning::Lavalink HTTP health check delayed or failed!"
             fi
             sleep 30
           done

@@ -15,20 +15,34 @@ server:
         direct-buffers: true
         io-threads: 4
         no-request-timeout: 60000
-        worker-threads: 32
+        worker-threads: 64
+        options:
+            socket:
+                TCP_NODELAY: true
+                BACKLOG: 1024
+            server:
+                ALWAYS_SET_KEEP_ALIVE: true
+                RECORD_REQUEST_START_TIME: false
+
+koe:
+    useEpoll: true # Linux native C-epoll network transport (lowest UDP voice latency)
+    useKQueue: false
+    highPacketPriority: true # Real-time scheduling priority for Discord voice frames
+    bufferDurationMs: 400
+    byteBufAllocator: "pooled" # Netty pooled off-heap direct buffers
 
 lavalink:
     plugins: [] # Loads pre-bundled local JARs from ./plugins
     pluginsDir: "./plugins"
     server:
         password: "YOUR_LAVALINK_PASSWORD" # Change this password
-        bufferDurationMs: 1500
+        bufferDurationMs: 1000
         frameBufferDurationMs: 5000
         playerUpdateInterval: 5
         opusEncodingQuality: 10
         resamplingQuality: MEDIUM
         trackStuckThresholdMs: 10000
-        useSeekGhosting: true
+        useSeekGhosting: false
         gcWarnings: false
         youtubeSearchEnabled: false # Handled via dev.lavalink.youtube
         soundcloudSearchEnabled: true
