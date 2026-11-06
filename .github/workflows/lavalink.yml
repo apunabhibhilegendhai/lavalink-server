@@ -72,6 +72,7 @@ jobs:
 
           if [ -n "$YT_REFRESH_TOKEN" ]; then
             sed -i "/oauth:/,/refreshToken:/ s/enabled: false/enabled: true/" application.yml
+            sed -i "/oauth:/,/refreshToken:/ s/skipInitialization: false/skipInitialization: true/" application.yml
             sed -i "s|refreshToken: .*|refreshToken: \"${YT_REFRESH_TOKEN}\"|g" application.yml
           fi
 
