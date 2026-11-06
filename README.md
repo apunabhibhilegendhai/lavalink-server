@@ -14,10 +14,10 @@ The file [`NODE_STATUS.md`](NODE_STATUS.md) is updated in real time whenever a G
 
 ## 🎵 Supported Audio Sources (All Enabled!)
 
-- **YouTube & YouTube Music**: Full multi-client fallback rotation (`MUSIC`, `ANDROID_MUSIC`, `TV`, `TVHTML5_SIMPLY`, `WEBEMBEDDED`, `IOS`, `MWEB`, `WEB`) + **Remote Cipher integration** (`https://cipher.kikkia.dev`) to bypass bot blocks and cipher updates.
-- **Spotify**: Zero-auth GraphQL streaming via **SolaceAudio** (No Spotify Developer API App or Spotify Premium subscription needed!).
-- **JioSaavn**: Native Indian music streaming resolution (`jssearch:`).
-- **SoundCloud**: Enabled for searches and playback.
+- **YouTube & YouTube Music**: Full multi-client fallback rotation (`ANDROID_VR`, `TVHTML5_SIMPLY`, `ANDROID_MUSIC`, `MUSIC`, `WEBEMBEDDED`, `IOS`, `MWEB`, `WEB`) + **YouTube OAuth 2.0 device authentication** to completely eliminate 403s, datacenter IP blocks, and login restrictions.
+- **Spotify**: Zero-auth GraphQL streaming via **SolaceAudio** (No Spotify Developer API App or Spotify Premium subscription needed!), mirrored to YouTube Music and JioSaavn full-length audio tracks.
+- **JioSaavn**: Direct 320kbps Indian music streaming CDN (`jssearch:`).
+- **SoundCloud**: Full library search and streaming.
 - **Bandcamp, Twitch, Vimeo, HTTP Direct Streams**: Fully supported.
 
 ---
