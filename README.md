@@ -140,6 +140,12 @@ const kazagurumo = new Kazagurumo({
 }, new Connectors.DiscordJS(client), Nodes);
 ```
 
+👉 **For comprehensive client integrations, see [CLIENT_SETUP.md](CLIENT_SETUP.md)**:
+- 🔁 **Session Resuming** (zero-downtime player handover between reconnects)
+- 🎧 **DSP Audio Filter Presets** (8D Audio, Bass Boost, Nightcore, Vaporwave, Karaoke)
+- 📊 **Prometheus Metrics Monitoring** (`/metrics` with 128+ real-time audio statistics)
+- 🐳 **Docker Compose Deployment** (`docker compose up -d`)
+
 ---
 
 ## 🛠️ How Permanent Domains Work (Cloudflare Named Tunnels)
