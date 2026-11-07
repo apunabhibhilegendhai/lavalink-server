@@ -469,9 +469,15 @@ jobs:
   recover:
     name: 24/7 Self-Healing Dispatcher
     needs: matrix-runner
-    if: always() && needs.matrix-runner.result != 'cancelled'
+    # Only run on failure or success, NOT on manual cancellation
+    if: always() && needs.matrix-runner.result != 'cancelled' && github.event.action != 'cancelled'
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+      
       - name: Prevent Duplicate Sessions & Re-dispatch Next Session
         env:
           GH_TOKEN: ${{ secrets.ACTIONS_TRIGGER_TOKEN || github.token }}
@@ -481,18 +487,62 @@ jobs:
         run: |
           set -euo pipefail
           
-          # Check if this run was manually cancelled by a user
-          echo "Checking if workflow was manually cancelled..."
+          # Multiple layers of manual cancellation detection
+          echo "🔍 Checking for manual cancellation signals..."
+          
+          # Layer 0: Check for persistent cancellation marker file
+          if [ -f ".workflow_cancelled" ]; then
+            echo "🛑 PERSISTENT CANCELLATION MARKER FOUND"
+            echo "The workflow was manually stopped and marked to not restart."
+            echo "To resume 24/7 operation:"
+            echo "  1. Delete the .workflow_cancelled file from the repository"
+            echo "  2. Manually trigger the workflow from Actions tab"
+            exit 0
+          fi
+          
+          # Layer 1: Check workflow conclusion and status
           current_run="$(gh api "repos/${GH_REPOSITORY}/actions/runs/${CURRENT_RUN_ID}" || echo '{}')"
           conclusion="$(echo "$current_run" | jq -r '.conclusion // "none"')"
           status="$(echo "$current_run" | jq -r '.status // "none"')"
           
-          # If workflow is cancelled or any job shows manual cancellation, do not restart
+          echo "Workflow Status: $status"
+          echo "Workflow Conclusion: $conclusion"
+          
           if [ "$conclusion" = "cancelled" ] || [ "$status" = "cancelled" ]; then
-            echo "🛑 Workflow was manually cancelled by user. Skipping automatic restart."
-            echo "To restart the 24/7 service, manually trigger the workflow from the Actions tab."
+            echo "🛑 MANUAL CANCELLATION DETECTED (workflow level)"
+            echo "Creating persistent cancellation marker..."
+            echo "cancelled_at=$(date -u '+%Y-%m-%d %H:%M:%S UTC')" > .workflow_cancelled
+            echo "cancelled_by=manual" >> .workflow_cancelled
+            echo "run_id=${CURRENT_RUN_ID}" >> .workflow_cancelled
+            
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add .workflow_cancelled
+            git commit -m "chore: workflow manually cancelled, disable auto-restart [skip ci]" || true
+            git pull --rebase origin $BRANCH || true
+            git push origin $BRANCH || true
+            
+            echo "Automatic restart is now disabled. To restart, delete .workflow_cancelled and use workflow_dispatch."
             exit 0
           fi
+          
+          # Layer 2: Check individual job results
+          jobs_json="$(gh api "repos/${GH_REPOSITORY}/actions/runs/${CURRENT_RUN_ID}/jobs" || echo '{"jobs":[]}')"
+          cancelled_jobs="$(echo "$jobs_json" | jq '[.jobs[] | select(.conclusion == "cancelled")] | length')"
+          
+          if [ "$cancelled_jobs" -gt 0 ]; then
+            echo "🛑 MANUAL CANCELLATION DETECTED ($cancelled_jobs job(s) cancelled)"
+            echo "Automatic restart is disabled. To restart, use workflow_dispatch from Actions tab."
+            exit 0
+          fi
+          
+          # Layer 3: Check if triggered by workflow_dispatch (manual trigger should continue)
+          trigger_event="${{ github.event_name }}"
+          if [ "$trigger_event" = "workflow_dispatch" ]; then
+            echo "ℹ️  Workflow was manually triggered - treating failures as temporary"
+          fi
+          
+          echo "✅ No manual cancellation detected. Proceeding with recovery logic..."
           
           # Check for duplicate active sessions
           runs="$(gh api "repos/${GH_REPOSITORY}/actions/workflows/main.yml/runs?per_page=30" || echo '{"workflow_runs":[]}')"
