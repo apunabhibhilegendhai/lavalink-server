@@ -337,6 +337,16 @@ jobs:
         run: |
           cd music-bot
           echo "📦 Installing dependencies..."
+          
+          # Regenerate package-lock.json if out of sync
+          if ! npm ci --prefer-offline --no-audit 2>&1; then
+            echo "⚠️  package-lock.json out of sync, regenerating..."
+            rm -f package-lock.json
+            npm install --package-lock-only
+            echo "✅ package-lock.json regenerated"
+          fi
+          
+          # Now install with the correct lock file
           npm ci --prefer-offline --no-audit
           
           echo "🔧 Checking installed better-sqlite3 version and bindings..."
