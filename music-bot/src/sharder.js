@@ -3,6 +3,17 @@ const { ShardingManager } = require("discord.js");
 const path = require("path");
 const logger = require("./utils/logger");
 
+// Global error handlers to prevent segfaults from crashing silently
+process.on("uncaughtException", (error) => {
+  logger.error("🚨 FATAL: Uncaught Exception:", error?.stack || error);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  logger.error("🚨 FATAL: Unhandled Promise Rejection at:", promise, "reason:", reason?.stack || reason);
+  process.exit(1);
+});
+
 const BANNER = `
 \x1b[35m
   ██████╗ ██╗   ██╗██╗     ███████╗███████╗
@@ -44,6 +55,18 @@ if (tokens.length === 0) {
 // -----------------------------------------------------------------------------
 if (tokens.length > 1) {
   logger.info(`[Multi-Bot Fleet] Launching ${tokens.length} concurrent bot instances on shared Lavalink node...`);
+  
+  // Pre-initialize database to catch any native module errors early
+  try {
+    const testDb = require("./database/db");
+    logger.info("[Database] SQLite native module initialized successfully");
+  } catch (err) {
+    logger.error("❌ FATAL: Failed to initialize SQLite database:", err?.message || err);
+    logger.error("This is usually caused by a missing or incompatible better-sqlite3 native module.");
+    logger.error("Stack:", err?.stack);
+    process.exit(1);
+  }
+  
   const BotClient = require("./structures/BotClient");
   const multiBotCoordinator = require("./utils/multiBotCoordinator");
 
@@ -180,5 +203,17 @@ else if (process.env.ENABLE_SHARDING === "true") {
 // -----------------------------------------------------------------------------
 else {
   logger.info("Starting single Bot instance directly (optimized for GitHub Actions runner)...");
+  
+  // Pre-initialize database to catch any native module errors early
+  try {
+    const testDb = require("./database/db");
+    logger.info("[Database] SQLite native module initialized successfully");
+  } catch (err) {
+    logger.error("❌ FATAL: Failed to initialize SQLite database:", err?.message || err);
+    logger.error("This is usually caused by a missing or incompatible better-sqlite3 native module.");
+    logger.error("Stack:", err?.stack);
+    process.exit(1);
+  }
+  
   require("./index.js");
 }

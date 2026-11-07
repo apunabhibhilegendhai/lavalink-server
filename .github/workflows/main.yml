@@ -37,7 +37,7 @@ jobs:
       # SHARED INITIALIZATION
       # ========================================================================
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
 
@@ -46,7 +46,7 @@ jobs:
       # ========================================================================
       - name: Setup Java 21 LTS (Lavalink)
         if: matrix.component == 'lavalink'
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '21'
@@ -54,7 +54,7 @@ jobs:
       - name: Cache Lavalink Core Jar
         if: matrix.component == 'lavalink'
         id: cache-lavalink
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: Lavalink.jar
           key: lavalink-v4.2.2-jar
@@ -291,7 +291,7 @@ jobs:
       - name: Restore Bot Database & Active Sessions Cache
         if: matrix.component == 'music-bot'
         id: restore-bot-data
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: music-bot/data
           key: bot-data-${{ github.run_id }}
@@ -311,29 +311,45 @@ jobs:
 
       - name: Setup Node.js 20.x LTS (Music Bot)
         if: matrix.component == 'music-bot'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: 'music-bot/package-lock.json'
 
-      - name: Install Dependencies
+      - name: Install Build Tools for Native Modules
+        if: matrix.component == 'music-bot'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y build-essential python3 python3-pip
+
+      - name: Install Dependencies & Rebuild Native Modules
         if: matrix.component == 'music-bot'
         run: |
           cd music-bot
           npm ci --prefer-offline --no-audit
+          # Force rebuild native modules for current Node.js/architecture
+          npm rebuild better-sqlite3 sharp --build-from-source
           cd ..
 
       - name: Parse Lavalink Connection from NODE_STATUS.md
         if: matrix.component == 'music-bot'
         run: |
-          # Wait up to 60s for Lavalink node to initialize if using dynamic tunnel
+          # Wait up to 120s for Lavalink node to initialize if using dynamic tunnel
           if [ -z "${{ secrets.LAVALINK_HOST }}" ]; then
-            for i in {1..12}; do
+            echo "Waiting for Lavalink node to be ready..."
+            for i in {1..24}; do
               git pull --rebase origin ${{ github.ref_name }} 2>/dev/null || true
-              if [ -f "NODE_STATUS.md" ]; then break; fi
+              if [ -f "NODE_STATUS.md" ]; then
+                echo "NODE_STATUS.md found!"
+                break
+              fi
+              echo "Attempt $i/24: NODE_STATUS.md not found yet, waiting 5s..."
               sleep 5
             done
+            if [ ! -f "NODE_STATUS.md" ]; then
+              echo "⚠️ Warning: NODE_STATUS.md not found after 2 minutes. Lavalink may not be ready yet."
+            fi
           fi
           HOST=""
           PASSWORD=""
@@ -348,6 +364,7 @@ jobs:
           echo "PARSED_PORT=443" >> $GITHUB_ENV
           echo "PARSED_SECURE=true" >> $GITHUB_ENV
           echo "PARSED_PASSWORD=${PASSWORD:-youshallnotpass}" >> $GITHUB_ENV
+          echo "📡 Lavalink connection: ${HOST:-lavalink.opendrive.indevs.in}:443"
 
       - name: Register Discord Slash Commands
         if: matrix.component == 'music-bot'
@@ -387,14 +404,14 @@ jobs:
 
       - name: Save Bot Database & Active Sessions Cache
         if: matrix.component == 'music-bot' && always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: music-bot/data
           key: bot-data-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Upload Persistent Bot Data Artifact
         if: matrix.component == 'music-bot' && always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: bot-backup-latest
           path: music-bot/data
@@ -433,14 +450,30 @@ jobs:
           BRANCH: ${{ github.ref_name }}
         run: |
           set -euo pipefail
+          
+          # Check if this run was manually cancelled by a user
+          echo "Checking if workflow was manually cancelled..."
+          current_run="$(gh api "repos/${GH_REPOSITORY}/actions/runs/${CURRENT_RUN_ID}" || echo '{}')"
+          conclusion="$(echo "$current_run" | jq -r '.conclusion // "none"')"
+          status="$(echo "$current_run" | jq -r '.status // "none"')"
+          
+          # If workflow is cancelled or any job shows manual cancellation, do not restart
+          if [ "$conclusion" = "cancelled" ] || [ "$status" = "cancelled" ]; then
+            echo "🛑 Workflow was manually cancelled by user. Skipping automatic restart."
+            echo "To restart the 24/7 service, manually trigger the workflow from the Actions tab."
+            exit 0
+          fi
+          
+          # Check for duplicate active sessions
           runs="$(gh api "repos/${GH_REPOSITORY}/actions/workflows/main.yml/runs?per_page=30" || echo '{"workflow_runs":[]}')"
           active="$(jq --arg current "${CURRENT_RUN_ID}" '[.workflow_runs[] | select((.id | tostring) != $current) | select(.status == "queued" or .status == "in_progress" or .status == "pending")] | length' <<< "$runs")"
+          
           if [ "$active" -gt 0 ]; then
-            echo "Another matrix session is already running. Skipping duplicate dispatch."
+            echo "⏭️  Another matrix session is already running. Skipping duplicate dispatch."
           else
-            echo "Dispatching next 24/7 production matrix session on branch: $BRANCH..."
+            echo "🔄 Dispatching next 24/7 production matrix session on branch: $BRANCH..."
             gh api --method POST \
               "repos/${GH_REPOSITORY}/actions/workflows/main.yml/dispatches" \
               -f ref="$BRANCH"
-            echo "Next matrix session dispatched successfully!"
+            echo "✅ Next matrix session dispatched successfully!"
           fi

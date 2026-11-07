@@ -13,62 +13,87 @@ const logger = require("../utils/logger");
 const dataDir = path.join(__dirname, "..", "..", "data");
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
+  logger.info("[Database] Created data directory:", dataDir);
 }
 
 const dbPath = path.join(dataDir, "bot.db");
-const db = new Database(dbPath);
+logger.info("[Database] Initializing SQLite database at:", dbPath);
+
+let db;
+try {
+  db = new Database(dbPath);
+  logger.info("[Database] SQLite database connection established");
+} catch (err) {
+  logger.error("[Database] ❌ FATAL: Failed to initialize better-sqlite3:", err?.message || err);
+  logger.error("[Database] This usually means the native module was not compiled correctly.");
+  logger.error("[Database] Try: npm rebuild better-sqlite3 --build-from-source");
+  throw err;
+}
 
 // Enable WAL mode and synchronous normal for ultra-fast disk writes
-db.pragma("journal_mode = WAL");
-db.pragma("synchronous = NORMAL");
+try {
+  db.pragma("journal_mode = WAL");
+  db.pragma("synchronous = NORMAL");
+  logger.info("[Database] WAL mode enabled, synchronous mode set to NORMAL");
+} catch (err) {
+  logger.error("[Database] Failed to set pragmas:", err?.message);
+  throw err;
+}
 
 // Initialize Schema
-db.exec(`
-  CREATE TABLE IF NOT EXISTS guild_settings (
-    guild_id TEXT PRIMARY KEY,
-    prefix TEXT DEFAULT '.',
-    request_channel_id TEXT,
-    request_message_id TEXT,
-    dj_role_id TEXT,
-    dj_enabled INTEGER DEFAULT 0,
-    auto_pause_enabled INTEGER DEFAULT 1,
-    stage_auto_speaker INTEGER DEFAULT 1,
-    updated_at INTEGER
-  );
+logger.info("[Database] Initializing database schema...");
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS guild_settings (
+      guild_id TEXT PRIMARY KEY,
+      prefix TEXT DEFAULT '.',
+      request_channel_id TEXT,
+      request_message_id TEXT,
+      dj_role_id TEXT,
+      dj_enabled INTEGER DEFAULT 0,
+      auto_pause_enabled INTEGER DEFAULT 1,
+      stage_auto_speaker INTEGER DEFAULT 1,
+      updated_at INTEGER
+    );
 
-  CREATE TABLE IF NOT EXISTS user_playlists (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id TEXT NOT NULL,
-    name TEXT NOT NULL,
-    created_at INTEGER NOT NULL,
-    UNIQUE(user_id, name)
-  );
+    CREATE TABLE IF NOT EXISTS user_playlists (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      UNIQUE(user_id, name)
+    );
 
-  CREATE TABLE IF NOT EXISTS playlist_tracks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    playlist_id INTEGER NOT NULL,
-    title TEXT NOT NULL,
-    author TEXT,
-    uri TEXT NOT NULL,
-    duration INTEGER,
-    artwork_url TEXT,
-    source_name TEXT,
-    added_at INTEGER NOT NULL,
-    FOREIGN KEY(playlist_id) REFERENCES user_playlists(id) ON DELETE CASCADE
-  );
+    CREATE TABLE IF NOT EXISTS playlist_tracks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      playlist_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      author TEXT,
+      uri TEXT NOT NULL,
+      duration INTEGER,
+      artwork_url TEXT,
+      source_name TEXT,
+      added_at INTEGER NOT NULL,
+      FOREIGN KEY(playlist_id) REFERENCES user_playlists(id) ON DELETE CASCADE
+    );
 
-  CREATE TABLE IF NOT EXISTS user_favorites (
-    user_id TEXT NOT NULL,
-    uri TEXT NOT NULL,
-    title TEXT NOT NULL,
-    author TEXT,
-    duration INTEGER,
-    artwork_url TEXT,
-    source_name TEXT,
-    saved_at INTEGER NOT NULL,
-    PRIMARY KEY(user_id, uri)
-  );
-`);
+    CREATE TABLE IF NOT EXISTS user_favorites (
+      user_id TEXT NOT NULL,
+      uri TEXT NOT NULL,
+      title TEXT NOT NULL,
+      author TEXT,
+      duration INTEGER,
+      artwork_url TEXT,
+      source_name TEXT,
+      saved_at INTEGER NOT NULL,
+      PRIMARY KEY(user_id, uri)
+    );
+  `);
+  logger.info("[Database] Schema initialized successfully");
+} catch (err) {
+  logger.error("[Database] Failed to initialize schema:", err?.message);
+  throw err;
+}
 
 // Safe migration for existing databases: ensure prefix column exists
 try {
