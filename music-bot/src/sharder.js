@@ -56,14 +56,21 @@ if (tokens.length === 0) {
 if (tokens.length > 1) {
   logger.info(`[Multi-Bot Fleet] Launching ${tokens.length} concurrent bot instances on shared Lavalink node...`);
   
-  // Pre-initialize database to catch any native module errors early
+  // Pre-test better-sqlite3 native module BEFORE loading database
+  logger.info("[Pre-Flight] Testing better-sqlite3 native module compatibility...");
   try {
-    const testDb = require("./database/db");
-    logger.info("[Database] SQLite native module initialized successfully");
+    const Database = require("better-sqlite3");
+    const testPath = require("path").join(__dirname, "..", "data", ".test_native_module.db");
+    const testDb = new Database(testPath);
+    testDb.close();
+    require("fs").unlinkSync(testPath);
+    logger.info("[Pre-Flight] ✅ better-sqlite3 native module is working correctly");
   } catch (err) {
-    logger.error("❌ FATAL: Failed to initialize SQLite database:", err?.message || err);
-    logger.error("This is usually caused by a missing or incompatible better-sqlite3 native module.");
-    logger.error("Stack:", err?.stack);
+    logger.error("❌ FATAL: better-sqlite3 native module failed to load!");
+    logger.error("Error:", err?.message || err);
+    logger.error("This indicates the native module was not properly compiled for this system.");
+    logger.error("Required fix: npm rebuild better-sqlite3 --build-from-source");
+    logger.error("Stack trace:", err?.stack);
     process.exit(1);
   }
   
@@ -204,14 +211,21 @@ else if (process.env.ENABLE_SHARDING === "true") {
 else {
   logger.info("Starting single Bot instance directly (optimized for GitHub Actions runner)...");
   
-  // Pre-initialize database to catch any native module errors early
+  // Pre-test better-sqlite3 native module BEFORE loading database
+  logger.info("[Pre-Flight] Testing better-sqlite3 native module compatibility...");
   try {
-    const testDb = require("./database/db");
-    logger.info("[Database] SQLite native module initialized successfully");
+    const Database = require("better-sqlite3");
+    const testPath = require("path").join(__dirname, "..", "data", ".test_native_module.db");
+    const testDb = new Database(testPath);
+    testDb.close();
+    require("fs").unlinkSync(testPath);
+    logger.info("[Pre-Flight] ✅ better-sqlite3 native module is working correctly");
   } catch (err) {
-    logger.error("❌ FATAL: Failed to initialize SQLite database:", err?.message || err);
-    logger.error("This is usually caused by a missing or incompatible better-sqlite3 native module.");
-    logger.error("Stack:", err?.stack);
+    logger.error("❌ FATAL: better-sqlite3 native module failed to load!");
+    logger.error("Error:", err?.message || err);
+    logger.error("This indicates the native module was not properly compiled for this system.");
+    logger.error("Required fix: npm rebuild better-sqlite3 --build-from-source");
+    logger.error("Stack trace:", err?.stack);
     process.exit(1);
   }
   

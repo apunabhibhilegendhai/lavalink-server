@@ -320,16 +320,46 @@ jobs:
       - name: Install Build Tools for Native Modules
         if: matrix.component == 'music-bot'
         run: |
+          echo "📥 Installing build tools..."
           sudo apt-get update -qq
           sudo apt-get install -y build-essential python3 python3-pip
+          
+          echo "🔧 Installing node-gyp globally..."
+          npm install -g node-gyp
+          
+          echo "✅ Build environment ready"
+          node-gyp --version
+          python3 --version
+          gcc --version
 
       - name: Install Dependencies & Rebuild Native Modules
         if: matrix.component == 'music-bot'
         run: |
           cd music-bot
+          echo "📦 Installing dependencies..."
           npm ci --prefer-offline --no-audit
-          # Force rebuild native modules for current Node.js/architecture
-          npm rebuild better-sqlite3 sharp --build-from-source
+          
+          echo "🔧 Checking installed better-sqlite3 version and bindings..."
+          npm list better-sqlite3 || true
+          
+          echo "🔨 Force rebuilding native modules from source..."
+          # Remove any prebuilt binaries to ensure fresh build
+          rm -rf node_modules/better-sqlite3/build node_modules/better-sqlite3/prebuilds 2>/dev/null || true
+          rm -rf node_modules/sharp/build node_modules/sharp/vendor 2>/dev/null || true
+          
+          # Rebuild with verbose output to see any errors
+          npm rebuild better-sqlite3 --build-from-source --verbose
+          npm rebuild sharp --build-from-source --verbose
+          
+          echo "✅ Verifying better-sqlite3 build..."
+          ls -la node_modules/better-sqlite3/build/Release/ || echo "⚠️ No Release build found"
+          
+          echo "🧪 Testing better-sqlite3 module..."
+          node -e "const db = require('better-sqlite3')(':memory:'); db.close(); console.log('✅ better-sqlite3 test passed')" || {
+            echo "❌ better-sqlite3 test FAILED!"
+            exit 1
+          }
+          
           cd ..
 
       - name: Parse Lavalink Connection from NODE_STATUS.md
