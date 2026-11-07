@@ -6,6 +6,7 @@ const { sendOrUpdatePlayerDashboard } = require("../utils/playerController");
 const { updateRequestChannelDashboard } = require("../utils/requestChannelManager");
 const { infoEmbed, warnEmbed, errorEmbed } = require("../utils/embed");
 const { truncate } = require("../utils/formatters");
+const emojis = require("../utils/emojis");
 const voiceStatusManager = require("../utils/voiceStatusManager");
 const audioOptimizer = require("../utils/audioOptimizer");
 const stateManager = require("../utils/stateManager");
@@ -150,7 +151,7 @@ function initLavalink(client) {
       const channel = client.channels.cache.get(player.textChannelId);
       if (channel) {
         channel.send({
-          content: `⚠️ Stream for **${truncate(track.info.title, 45)}** stalled. Skipping...`,
+          content: `${emojis.warn} Stream for **${truncate(track.info.title, 45)}** stalled. Skipping...`,
           allowedMentions: { parse: [], users: [] },
         }).then((m) => setTimeout(() => m.delete().catch(() => {}), 8000)).catch(() => {});
       }
@@ -164,7 +165,7 @@ function initLavalink(client) {
       const channel = client.channels.cache.get(player.textChannelId);
       if (channel) {
         channel.send({
-          content: `❌ Audio decode failure for **${truncate(track.info.title, 45)}**. Playing next...`,
+          content: `${emojis.cross} Audio decode failure for **${truncate(track.info.title, 45)}**. Playing next...`,
           allowedMentions: { parse: [], users: [] },
         }).then((m) => setTimeout(() => m.delete().catch(() => {}), 8000)).catch(() => {});
       }
@@ -224,7 +225,7 @@ function initLavalink(client) {
       const channel = client.channels.cache.get(player.textChannelId);
       if (channel) {
         channel.send({
-          content: "⚠️ Queue finished. Bot will disconnect in 3 minutes if no new music is added.",
+          content: `${emojis.warn} Queue finished. Bot will disconnect in 3 minutes if no new music is added.`,
           allowedMentions: { parse: [], users: [] },
         }).then((m) => setTimeout(() => m.delete().catch(() => {}), 15000)).catch(() => {});
       }

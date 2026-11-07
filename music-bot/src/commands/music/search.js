@@ -10,6 +10,7 @@ const { trackEnqueuedEmbed, errorEmbed } = require("../../utils/embed");
 const { formatDuration, truncate } = require("../../utils/formatters");
 const { getPlatformTheme, cleanTrackTitle } = require("../../utils/sourceManager");
 const { handleSearchAutocomplete } = require("../../utils/searchAutocomplete");
+const emojis = require("../../utils/emojis");
 const config = require("../../config");
 
 // Store active search results in memory temporarily
@@ -53,7 +54,7 @@ module.exports = {
 
     if (!voiceChannel) {
       return interaction.reply({
-        content: "⚠️ You need to be in a voice channel to search music!",
+        content: `${emojis.warn} You need to be in a voice channel to search music!`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
@@ -88,7 +89,7 @@ module.exports = {
 
     if (!searchRes || !searchRes.tracks || searchRes.tracks.length === 0) {
       return interaction.editReply({
-        content: `❌ No search results found for \`${query}\`.`,
+        content: `${emojis.cross} No search results found for \`${query}\`.`,
       });
     }
 
@@ -102,7 +103,7 @@ module.exports = {
 
     const selectMenu = new StringSelectMenuBuilder()
       .setCustomId(`select_search_${searchId}`)
-      .setPlaceholder("🎵 Choose a track to enqueue...");
+      .setPlaceholder("Choose a track to enqueue...");
 
     const descriptionLines = [];
 
@@ -116,7 +117,7 @@ module.exports = {
           .setLabel(`${index + 1}. ${cleanTitle}`)
           .setDescription(`${cleanAuthor} • ${duration}`)
           .setValue(index.toString())
-          .setEmoji("🎶")
+          .setEmoji(emojis.music)
       );
 
       descriptionLines.push(
@@ -157,7 +158,7 @@ module.exports = {
 
     if (!searchData) {
       return interaction.reply({
-        content: "❌ This search menu has expired. Please run `/search` again.",
+        content: `${emojis.cross} This search menu has expired. Please run \`/search\` again.`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
@@ -165,7 +166,7 @@ module.exports = {
 
     if (interaction.user.id !== searchData.userId) {
       return interaction.reply({
-        content: "⚠️ Only the user who initiated this search can select a track.",
+        content: `${emojis.warn} Only the user who initiated this search can select a track.`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
@@ -176,7 +177,7 @@ module.exports = {
 
     if (!chosenTrack) {
       return interaction.reply({
-        content: "❌ Track not found.",
+        content: `${emojis.cross} Track not found.`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
@@ -197,7 +198,7 @@ module.exports = {
     const pos = player.queue.tracks.length;
 
     await interaction.update({
-      content: `✅ Enqueued [**${cleanTitle}**](${uri}) by **${cleanAuthor}** (\`#${pos}\`).\n-# Requested by <@${interaction.user.id}>`,
+      content: `${emojis.check} Enqueued [**${cleanTitle}**](${uri}) by **${cleanAuthor}** (\`#${pos}\`).\n-# Requested by <@${interaction.user.id}>`,
       embeds: [],
       components: [],
       allowedMentions: { parse: [], users: [] },

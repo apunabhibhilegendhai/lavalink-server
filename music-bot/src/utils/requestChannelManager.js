@@ -121,7 +121,7 @@ async function handleSongRequestMessage(message, client) {
 
   if (!voiceChannel) {
     const reply = await message.channel.send({
-      content: `⚠️ ${message.author}, you must be connected to a voice channel to request songs!`,
+      content: `${emojis.warn} ${message.author}, you must be connected to a voice channel to request songs!`,
     }).catch(() => null);
     if (reply) setTimeout(() => reply.delete().catch(() => {}), 6000);
     return;
@@ -150,7 +150,7 @@ async function handleSongRequestMessage(message, client) {
 
     if (!res || !res.tracks || res.tracks.length === 0) {
       const reply = await message.channel.send({
-        content: `❌ ${message.author}, no audio results found for \`${truncate(query, 50)}\`.`,
+        content: `${emojis.cross} ${message.author}, no audio results found for \`${truncate(query, 50)}\`.`,
       }).catch(() => null);
       if (reply) setTimeout(() => reply.delete().catch(() => {}), 6000);
       return;
@@ -159,14 +159,14 @@ async function handleSongRequestMessage(message, client) {
     if (res.loadType === "playlist") {
       player.queue.add(res.tracks);
       const reply = await message.channel.send({
-        content: `✅ Queued playlist **${truncate(res.playlist?.title || "Playlist", 40)}** (${res.tracks.length} tracks).`,
+        content: `${emojis.check} Queued playlist **${truncate(res.playlist?.title || "Playlist", 40)}** (${res.tracks.length} tracks).`,
       }).catch(() => null);
       if (reply) setTimeout(() => reply.delete().catch(() => {}), 4000);
     } else {
       const track = res.tracks[0];
       player.queue.add(track);
       const reply = await message.channel.send({
-        content: `✅ Added **${truncate(track.info.title, 45)}** to the queue.`,
+        content: `${emojis.check} Added **${truncate(track.info.title, 45)}** to the queue.`,
       }).catch(() => null);
       if (reply) setTimeout(() => reply.delete().catch(() => {}), 4000);
     }

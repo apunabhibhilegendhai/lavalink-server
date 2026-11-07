@@ -5,6 +5,7 @@
 
 const { PermissionsBitField } = require("discord.js");
 const db = require("../database/db");
+const emojis = require("./emojis");
 
 class DJManager {
   /**
@@ -57,7 +58,7 @@ class DJManager {
 
     return {
       allowed: false,
-      reason: `⚠️ This server requires the <@&${settings.dj_role_id}> role or DJ permissions to use this control. You can also use \`/voteskip\` to vote!`,
+      reason: `${emojis.warn} This server requires the <@&${settings.dj_role_id}> role or DJ permissions to use this control. You can also use \`/voteskip\` to vote!`,
     };
   }
 
