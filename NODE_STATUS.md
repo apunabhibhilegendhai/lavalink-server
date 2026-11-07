@@ -1,11 +1,8 @@
 # 🟢 Live Public Lavalink Node
-
 > **Status**: ONLINE 🟢  
-> **Session Run**: #38  
-> **Last Started**: 2026-11-07 08:22:07 UTC
-
+> **Session Run**: #1  
+> **Last Started**: 2026-11-07 08:26:07 UTC
 ### 🌐 Public Connection Details
-
 | Setting | Value |
 |---|---|
 | **Host** | `lavalink.opendrive.indevs.in` |
