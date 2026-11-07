@@ -22,13 +22,14 @@ module.exports = {
     const currentPrefix = db.getGuildPrefix(guildId) || config.prefix.default;
     const newPrefix = interaction.options.getString("new");
 
-    // If no argument provided, display the current prefix
+    // If no argument provided, display the current prefix ephemerally
     if (!newPrefix) {
       return interaction.reply(
         actionText(
           emojis.gear,
           `Current server prefix is: \`${currentPrefix}\``,
-          `You can run commands using \`${currentPrefix}play\` or with flexible spacing: \`${currentPrefix} play <song>\`.\nTo change it, use \`/prefix new:<prefix>\` or \`${currentPrefix}prefix <new>\`.`
+          `You can run commands using \`${currentPrefix}play\` or with flexible spacing: \`${currentPrefix} play <song>\`.\nTo change it, use \`/prefix new:<prefix>\` or \`${currentPrefix}prefix <new>\`.`,
+          { ephemeral: true }
         )
       );
     }

@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require("discord.js");
 const config = require("../../config");
 const { formatDuration, formatBytes } = require("../../utils/formatters");
 const emojis = require("../../utils/emojis");
@@ -9,7 +9,7 @@ module.exports = {
     .setDescription("View real-time diagnostic performance metrics for Lavalink and Discord Cluster"),
 
   async execute(interaction, client) {
-    await interaction.deferReply();
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const node = client.lavalink?.nodeManager?.nodes?.values()?.next()?.value;
     const stats = node?.stats;

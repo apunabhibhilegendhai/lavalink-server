@@ -170,7 +170,7 @@ module.exports = {
   executeLyricsLookup,
 
   async execute(interaction, client) {
-    await interaction.deferReply();
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const player = client.lavalink.getPlayer(interaction.guildId);
     const query = interaction.options.getString("song");
     await executeLyricsLookup(interaction, player, query);

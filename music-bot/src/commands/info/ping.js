@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, MessageFlags } = require("discord.js");
 const { actionText } = require("../../utils/responses");
 const emojis = require("../../utils/emojis");
 
@@ -8,7 +8,11 @@ module.exports = {
     .setDescription("Check Discord Gateway and Lavalink WebSocket latencies"),
 
   async execute(interaction, client) {
-    const sent = await interaction.reply({ content: `${emojis.ping} Checking network latency...`, fetchReply: true });
+    const sent = await interaction.reply({
+      content: `${emojis.ping} Checking network latency...`,
+      flags: MessageFlags.Ephemeral,
+      fetchReply: true,
+    });
     const discordRoundtrip = sent.createdTimestamp - interaction.createdTimestamp;
     const wsPing = client.ws.ping;
 

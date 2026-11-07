@@ -69,7 +69,8 @@ module.exports = {
         actionText(
           emojis.autoplay,
           `Autoplay status: **${isEnabled ? "ACTIVE" : "INACTIVE"}**`,
-          `Seed: **${seedTitle}** • History: \`${historyCount}/100\` tracks cached`
+          `Seed: **${seedTitle}** • History: \`${historyCount}/100\` tracks cached`,
+          { ephemeral: true }
         )
       );
     }
@@ -80,7 +81,8 @@ module.exports = {
         actionText(
           emojis.reset,
           "Cleared autoplay playback history cache.",
-          "All related tracks can now be recommended fresh"
+          "All related tracks can now be recommended fresh",
+          { ephemeral: true }
         )
       );
     }

@@ -19,9 +19,13 @@ module.exports = {
     .setDescription("View the current music queue and upcoming tracks in compact landscape view")
     .addIntegerOption((option) =>
       option.setName("page").setDescription("Specific page number to view").setMinValue(1)
+    )
+    .addBooleanOption((option) =>
+      option.setName("hide").setDescription("Hide queue view from other users in chat (default: true)")
     ),
 
   async execute(interaction, client) {
+    const hide = interaction.options.getBoolean("hide") ?? true;
     const player = client.lavalink.getPlayer(interaction.guildId);
     if (!player || (!player.queue.current && player.queue.tracks.length === 0)) {
       return interaction.reply({
@@ -131,12 +135,17 @@ module.exports = {
       );
     }
 
-    const response = await interaction.reply({
+    const replyPayload = {
       embeds: [generateQueueEmbed(currentPage)],
       components: totalPages > 1 ? [generateButtons(currentPage)] : [],
       allowedMentions: { parse: [], users: [] },
       fetchReply: true,
-    });
+    };
+    if (hide) {
+      replyPayload.flags = MessageFlags.Ephemeral;
+    }
+
+    const response = await interaction.reply(replyPayload);
 
     if (totalPages <= 1) return;
 

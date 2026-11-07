@@ -60,7 +60,7 @@ module.exports = {
       });
     }
 
-    await interaction.deferReply();
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     let player = client.lavalink.getPlayer(interaction.guildId);
     if (!player) {
@@ -198,10 +198,17 @@ module.exports = {
     const pos = player.queue.tracks.length;
 
     await interaction.update({
-      content: `${emojis.check} Enqueued [**${cleanTitle}**](${uri}) by **${cleanAuthor}** (\`#${pos}\`).\n-# Requested by <@${interaction.user.id}>`,
+      content: `${emojis.check} Selected and enqueued [**${cleanTitle}**](${uri}) by **${cleanAuthor}**!`,
       embeds: [],
       components: [],
       allowedMentions: { parse: [], users: [] },
     });
+
+    if (interaction.channel) {
+      await interaction.channel.send({
+        content: `${emojis.check} Enqueued [**${cleanTitle}**](${uri}) by **${cleanAuthor}** (\`#${pos}\`).\n-# Requested by <@${interaction.user.id}>`,
+        allowedMentions: { parse: [], users: [] },
+      }).catch(() => {});
+    }
   },
 };

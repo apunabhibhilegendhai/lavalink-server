@@ -16,13 +16,15 @@ module.exports = {
    * Operational Action Text with optional native subtext
    * Example: ⏭️ Skipped Renegade by Aaryan Shah\n-# Up next: Track 2
    */
-  actionText(emoji, headline, subtext = null) {
+  actionText(emoji, headline, subtext = null, options = {}) {
     let out = `${emoji} ${headline}`;
     if (subtext) out += `\n-# ${subtext}`;
-    return {
+    const payload = {
       content: out,
       allowedMentions: { parse: [], users: [] },
     };
+    if (options.ephemeral) payload.flags = MessageFlags.Ephemeral;
+    return payload;
   },
 
   /**

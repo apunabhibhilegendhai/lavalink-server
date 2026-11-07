@@ -4,6 +4,7 @@ const {
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
   EmbedBuilder,
+  MessageFlags,
 } = require("discord.js");
 const config = require("../../config");
 const emojis = require("../../utils/emojis");
@@ -171,6 +172,7 @@ module.exports = {
     return interaction.reply({
       embeds: [getCategoryEmbed(chosenCategory, client)],
       components: [getCategoryRow()],
+      flags: MessageFlags.Ephemeral,
       allowedMentions: { parse: [], users: [] },
     });
   },

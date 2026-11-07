@@ -601,6 +601,7 @@ async function handlePlayerButton(interaction, client) {
       await player.destroy("User pressed Stop button");
       await interaction.reply({
         content: `${emojis.stop} Playback stopped, queue cleared, and disconnected from voice channel.`,
+        flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
       break;
