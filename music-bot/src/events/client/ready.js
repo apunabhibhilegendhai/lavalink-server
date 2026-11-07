@@ -28,12 +28,13 @@ module.exports = {
     // Arm graceful state persistence (auto-saves queue state & checkpoints database)
     stateManager.initGracefulPersistence(client);
 
-    // Set Dynamic Activity Presence
+    // Set Dynamic Activity Presence with Streaming Status
     client.user.setPresence({
       activities: [
         {
           name: "🎶 /play | Lavalink v4.2.2",
-          type: ActivityType.Listening,
+          type: ActivityType.Streaming,
+          url: "https://www.twitch.tv/monstercat", // Required for streaming status
         },
       ],
       status: "online",
