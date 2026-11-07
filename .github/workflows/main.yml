@@ -356,7 +356,7 @@ jobs:
           node src/deploy-commands.js || true
           cd ..
 
-      - name: Start Music Bot Fleet
+      - name: Run Music Bot Fleet (5.5 Hours)
         if: matrix.component == 'music-bot'
         env:
           LAVALINK_HOST: ${{ secrets.LAVALINK_HOST || env.PARSED_HOST }}
@@ -364,41 +364,21 @@ jobs:
           LAVALINK_PASSWORD: ${{ secrets.LAVALINK_PASSWORD || env.PARSED_PASSWORD }}
           LAVALINK_SECURE: ${{ secrets.LAVALINK_SECURE || env.PARSED_SECURE }}
           AUTO_MAXIMIZE_BITRATE: "true"
+          RUNNER_LIFETIME_MS: "19800000"
         run: |
           if [ -z "$DISCORD_TOKEN" ] && [ -z "$DISCORD_TOKENS" ]; then
             echo "::error::Neither DISCORD_TOKEN nor DISCORD_TOKENS secret is configured! Please configure bot token(s) in repository secrets."
             exit 1
           fi
-          echo "Starting Music Bot Fleet connected to Lavalink: $LAVALINK_HOST:$LAVALINK_PORT..."
+          echo "Starting 24/7 Music Bot Fleet connected to Lavalink: $LAVALINK_HOST:$LAVALINK_PORT..."
           cd music-bot
-          nohup node src/sharder.js > bot.log 2>&1 &
-          echo "BOT_PID=$!" >> $GITHUB_ENV
-          echo "Fleet Process PID: $!"
-          cd ..
-
-      - name: Keep Bot Fleet Alive & Stream Logs (5.5 Hours)
-        if: matrix.component == 'music-bot'
-        run: |
-          END_TIME=$((SECONDS + 330 * 60))
-          tail -f music-bot/bot.log &
-          while [ $SECONDS -lt $END_TIME ]; do
-            if ! kill -0 $BOT_PID 2>/dev/null; then
-              echo "::error::Music Bot fleet process died!"
-              tail -n 50 music-bot/bot.log || true
-              exit 1
-            fi
-            sleep 30
-          done
+          node src/sharder.js
 
       - name: Flush Bot Database & Save Active Sessions
         if: matrix.component == 'music-bot' && always()
         run: |
           if [ -d "music-bot/data" ]; then
-            echo "Flushing SQLite WAL checkpoints & capturing active sessions..."
-            if [ -n "$BOT_PID" ]; then
-              kill -SIGTERM $BOT_PID 2>/dev/null || true
-              sleep 3
-            fi
+            echo "Flushing SQLite WAL checkpoints & verifying database integrity..."
             cd music-bot
             node -e "try { require('./src/database/db').checkpoint(); console.log('DB Checkpoint successful'); } catch(e){ console.log(e.message); }" || true
             cd ..

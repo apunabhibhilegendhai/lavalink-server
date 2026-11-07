@@ -43,8 +43,16 @@ const cleanup = async (signal) => {
   }
 };
 
-process.on("SIGINT", () => cleanup("SIGINT"));
-process.on("SIGTERM", () => cleanup("SIGTERM"));
+process.once("SIGINT", () => cleanup("SIGINT"));
+process.once("SIGTERM", () => cleanup("SIGTERM"));
+
+// Schedule graceful 5.5-hour handoff (330 minutes)
+const lifetimeMs = parseInt(process.env.RUNNER_LIFETIME_MS || "19800000", 10);
+const handoffTimer = setTimeout(() => {
+  logger.info("[Runner] 5.5-hour scheduled handoff reached. Gracefully initiating handover...");
+  cleanup("HANDOFF");
+}, lifetimeMs);
+handoffTimer.unref();
 
 // Launch the bot client
 client.start().catch((err) => {

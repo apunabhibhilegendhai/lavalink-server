@@ -83,8 +83,16 @@ if (tokens.length > 1) {
     }
   };
 
-  process.on("SIGINT", () => cleanup("SIGINT"));
-  process.on("SIGTERM", () => cleanup("SIGTERM"));
+  process.once("SIGINT", () => cleanup("SIGINT"));
+  process.once("SIGTERM", () => cleanup("SIGTERM"));
+
+  // Schedule graceful 5.5-hour handoff (330 minutes)
+  const lifetimeMs = parseInt(process.env.RUNNER_LIFETIME_MS || "19800000", 10);
+  const handoffTimer = setTimeout(() => {
+    logger.info("[Fleet] 5.5-hour runner handoff reached. Initiating graceful handover...");
+    cleanup("HANDOFF");
+  }, lifetimeMs);
+  handoffTimer.unref();
 
   (async () => {
     for (let i = 0; i < clients.length; i++) {
