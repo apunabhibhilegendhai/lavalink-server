@@ -92,7 +92,7 @@ module.exports = {
    * Clean Error Text (No giant red embed box)
    */
   errorText(message, subtext = null) {
-    let out = `❌ ${message}`;
+    let out = `${emojis.cross} ${message}`;
     if (subtext) out += `\n-# ${subtext}`;
     return {
       content: out,
@@ -105,7 +105,7 @@ module.exports = {
    * Clean Warning Text
    */
   warnText(message, subtext = null) {
-    let out = `⚠️ ${message}`;
+    let out = `${emojis.warn} ${message}`;
     if (subtext) out += `\n-# ${subtext}`;
     return {
       content: out,
@@ -118,7 +118,7 @@ module.exports = {
    * Clean Success Text
    */
   successText(message, subtext = null, options = {}) {
-    let out = `✅ ${message}`;
+    let out = `${emojis.check} ${message}`;
     if (subtext) out += `\n-# ${subtext}`;
     const payload = {
       content: out,
@@ -132,7 +132,7 @@ module.exports = {
    * Clean Info Text
    */
   infoText(message, subtext = null, options = {}) {
-    let out = `ℹ️ ${message}`;
+    let out = `${emojis.info} ${message}`;
     if (subtext) out += `\n-# ${subtext}`;
     const payload = {
       content: out,
