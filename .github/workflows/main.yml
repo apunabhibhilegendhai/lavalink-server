@@ -314,8 +314,6 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: 'music-bot/package-lock.json'
 
       - name: Install Build Tools for Native Modules
         if: matrix.component == 'music-bot'
