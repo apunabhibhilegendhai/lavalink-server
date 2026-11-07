@@ -5,9 +5,10 @@ const config = require("../config");
 const logger = require("../utils/logger");
 const cache = require("../utils/cache");
 const { initLavalink } = require("./LavalinkHandler");
+const { ALIAS_MAP } = require("../utils/prefixParser");
 
 class BotClient extends Client {
-  constructor() {
+  constructor(customOptions = {}) {
     super({
       intents: [
         GatewayIntentBits.Guilds,
@@ -62,8 +63,16 @@ class BotClient extends Client {
     this.config = config;
     this.logger = logger;
     this.cache = cache;
+    this.botIndex = customOptions.botIndex || 0;
+    this.token = customOptions.token || config.discord.token;
     this.commands = new Collection();
+    this.aliases = new Collection();
     this.cooldowns = new Collection();
+
+    // Pre-populate canonical command aliases
+    for (const [alias, canonical] of ALIAS_MAP.entries()) {
+      this.aliases.set(alias, canonical);
+    }
 
     // Initialize Lavalink Manager
     this.lavalink = initLavalink(this);
@@ -95,6 +104,14 @@ class BotClient extends Client {
           if (command.data && command.execute) {
             command.category = category;
             this.commands.set(command.data.name, command);
+
+            // Register explicit command aliases
+            if (Array.isArray(command.aliases)) {
+              for (const alias of command.aliases) {
+                this.aliases.set(alias.toLowerCase(), command.data.name);
+              }
+            }
+
             loadedCount++;
           } else {
             logger.warn(`Command at ${filePath} is missing "data" or "execute" property.`);
@@ -141,8 +158,9 @@ class BotClient extends Client {
   /**
    * Connect to Discord and Lavalink
    */
-  async start() {
-    if (!this.config.discord.token) {
+  async start(token) {
+    const loginToken = token || this.token || this.config.discord.token;
+    if (!loginToken) {
       logger.error("No DISCORD_TOKEN provided in .env! Please add your bot token to start.");
       process.exit(1);
     }
@@ -151,7 +169,7 @@ class BotClient extends Client {
     this.loadEvents();
 
     // Log in to Discord Gateway
-    await this.login(this.config.discord.token);
+    await this.login(loginToken);
   }
 }
 
