@@ -20,6 +20,9 @@ jobs:
     name: Lavalink Node Runner
     runs-on: ubuntu-latest
     timeout-minutes: 360
+    env:
+      DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+      DISCORD_TOKENS: ${{ secrets.DISCORD_TOKENS }}
 
     steps:
       - name: Checkout Repository
@@ -287,13 +290,13 @@ jobs:
       # Optional Co-located Discord Music Bot (0.1ms Localhost Loopback Latency)
       # ------------------------------------------------------------------------
       - name: Setup Node.js (for Co-located Music Bot)
-        if: ${{ secrets.DISCORD_TOKEN != '' || secrets.DISCORD_TOKENS != '' }}
+        if: env.DISCORD_TOKEN != '' || env.DISCORD_TOKENS != ''
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Launch Co-located Music Bot (0ms Internal Latency)
-        if: ${{ secrets.DISCORD_TOKEN != '' || secrets.DISCORD_TOKENS != '' }}
+        if: env.DISCORD_TOKEN != '' || env.DISCORD_TOKENS != ''
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           DISCORD_TOKENS: ${{ secrets.DISCORD_TOKENS || '' }}
@@ -302,6 +305,10 @@ jobs:
           GUILD_ID: ${{ secrets.GUILD_ID || '' }}
           NODE_PASSWORD: ${{ secrets.LAVALINK_PASSWORD || 'youshallnotpass' }}
         run: |
+          if [ -z "$DISCORD_TOKEN" ] && [ -z "$DISCORD_TOKENS" ]; then
+            echo "No Discord token secret configured. Skipping co-located music bot."
+            exit 0
+          fi
           echo "Discord token secret detected! Launching co-located Music Bot on loopback 127.0.0.1:4998..."
           cd music-bot
           npm ci --prefer-offline --no-audit
@@ -359,6 +366,8 @@ jobs:
               cd music-bot
               nohup env \
                 DISCORD_TOKEN="${{ secrets.DISCORD_TOKEN }}" \
+                DISCORD_TOKENS="${{ secrets.DISCORD_TOKENS || '' }}" \
+                ALL_BOT_IDS="${{ secrets.ALL_BOT_IDS || '' }}" \
                 CLIENT_ID="${{ secrets.CLIENT_ID || '' }}" \
                 GUILD_ID="${{ secrets.GUILD_ID || '' }}" \
                 LAVALINK_HOST="127.0.0.1" \
