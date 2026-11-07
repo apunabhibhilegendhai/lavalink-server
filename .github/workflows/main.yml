@@ -1,4 +1,4 @@
-name: 24/7 Lavalink Audio Node Service
+name: 24/7 Production Matrix Engine
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ on:
       - master
 
 concurrency:
-  group: 247-lavalink
+  group: 247-matrix-engine
   cancel-in-progress: true
 
 permissions:
@@ -16,47 +16,43 @@ permissions:
   contents: write
 
 jobs:
-  lavalink:
-    name: Lavalink Node Runner
+  matrix-runner:
+    name: ${{ matrix.component == 'lavalink' && 'Lavalink Audio Node' || 'Discord Music Bot Fleet' }}
     runs-on: ubuntu-latest
     timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        component: [lavalink, music-bot]
     env:
       DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
       DISCORD_TOKENS: ${{ secrets.DISCORD_TOKENS }}
+      ALL_BOT_IDS: ${{ secrets.ALL_BOT_IDS }}
+      CLIENT_ID: ${{ secrets.CLIENT_ID }}
+      GUILD_ID: ${{ secrets.GUILD_ID }}
+      NODE_PASSWORD: ${{ secrets.LAVALINK_PASSWORD || 'youshallnotpass' }}
 
     steps:
+      # ========================================================================
+      # SHARED INITIALIZATION
+      # ========================================================================
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: Restore Bot Database & Active Sessions Cache
-        id: restore-bot-data
-        uses: actions/cache/restore@v4
-        with:
-          path: music-bot/data
-          key: bot-data-${{ github.run_id }}
-          restore-keys: |
-            bot-data-
-
-      - name: Restore Backup from Previous Artifact (if Cache Missed)
-        if: steps.restore-bot-data.outputs.cache-hit != 'true'
-        env:
-          GH_TOKEN: ${{ secrets.ACTIONS_TRIGGER_TOKEN || github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          mkdir -p music-bot/data
-          echo "Attempting to retrieve last artifact backup..."
-          gh run download --name bot-backup-latest --dir music-bot/data 2>/dev/null || true
-          ls -la music-bot/data || true
-
-      - name: Setup Java 21 LTS
+      # ========================================================================
+      # MATRIX COMPONENT A: LAVALINK AUDIO NODE
+      # ========================================================================
+      - name: Setup Java 21 LTS (Lavalink)
+        if: matrix.component == 'lavalink'
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
 
       - name: Cache Lavalink Core Jar
+        if: matrix.component == 'lavalink'
         id: cache-lavalink
         uses: actions/cache@v4
         with:
@@ -64,7 +60,7 @@ jobs:
           key: lavalink-v4.2.2-jar
 
       - name: Download Lavalink v4.2.2 Jar (if not cached)
-        if: steps.cache-lavalink.outputs.cache-hit != 'true'
+        if: matrix.component == 'lavalink' && steps.cache-lavalink.outputs.cache-hit != 'true'
         run: |
           if [ ! -f "Lavalink.jar" ] || [ $(wc -c < "Lavalink.jar" 2>/dev/null || echo 0) -lt 10000000 ]; then
             echo "Fetching Lavalink v4.2.2..."
@@ -73,36 +69,31 @@ jobs:
           ls -lh Lavalink.jar
 
       - name: Configure application.yml
+        if: matrix.component == 'lavalink'
         env:
-          NODE_PASSWORD: ${{ secrets.LAVALINK_PASSWORD || 'youshallnotpass' }}
           YT_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN || '' }}
           SP_DC_COOKIE: ${{ secrets.SPOTIFY_SP_DC || '' }}
         run: |
           if [ ! -f "application.yml" ]; then
             cp application.example.yml application.yml
           fi
-
           sed -i "s|password: .*|password: \"${NODE_PASSWORD}\"|g" application.yml
-
           if [ -n "$YT_REFRESH_TOKEN" ]; then
             sed -i "/oauth:/,/refreshToken:/ s/enabled: false/enabled: true/" application.yml
             sed -i "/oauth:/,/refreshToken:/ s/skipInitialization: false/skipInitialization: true/" application.yml
             sed -i "s|refreshToken: .*|refreshToken: \"${YT_REFRESH_TOKEN}\"|g" application.yml
           fi
-
           if [ -n "$SP_DC_COOKIE" ]; then
             sed -i "s|spDc: .*|spDc: \"${SP_DC_COOKIE}\"|g" application.yml
           fi
 
       - name: Optimize Linux Kernel Network & DNS (Ultra-Low Latency)
+        if: matrix.component == 'lavalink'
         run: |
           echo "Applying Linux kernel socket and network latency optimizations..."
-          # Load Google BBR congestion control & Fair Queuing scheduler
           sudo modprobe tcp_bbr || true
           sudo sysctl -w net.core.default_qdisc=fq || true
           sudo sysctl -w net.ipv4.tcp_congestion_control=bbr || true
-
-          # Maximize connection backlog & reuse
           sudo sysctl -w net.core.somaxconn=65535 || true
           sudo sysctl -w net.ipv4.tcp_max_syn_backlog=65535 || true
           sudo sysctl -w net.core.netdev_max_backlog=10000 || true
@@ -111,8 +102,6 @@ jobs:
           sudo sysctl -w net.ipv4.tcp_fin_timeout=15 || true
           sudo sysctl -w net.ipv4.tcp_low_latency=1 || true
           sudo sysctl -w net.ipv4.tcp_slow_start_after_idle=0 || true
-
-          # High-performance socket buffer limits
           sudo sysctl -w net.core.rmem_max=16777216 || true
           sudo sysctl -w net.core.wmem_max=16777216 || true
           sudo sysctl -w net.core.rmem_default=2097152 || true
@@ -122,17 +111,18 @@ jobs:
           sudo sysctl -w net.ipv4.udp_rmem_min=16384 || true
           sudo sysctl -w net.ipv4.udp_wmem_min=16384 || true
           ulimit -n 65535 || true
-
           echo "Injecting ultra-fast Anycast DNS (Cloudflare 1.1.1.1 & Google 8.8.8.8)..."
           sudo sed -i '1i nameserver 1.1.1.1\nnameserver 1.0.0.1\nnameserver 8.8.8.8' /etc/resolv.conf || true
 
       - name: Install Cloudflare Tunnel (cloudflared)
+        if: matrix.component == 'lavalink'
         run: |
           curl -sL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared
           chmod +x /usr/local/bin/cloudflared
           cloudflared --version
 
       - name: Start Lavalink Node (Java 21 Generational ZGC Ultra-Low Latency)
+        if: matrix.component == 'lavalink'
         run: |
           nohup java \
             -XX:+UseZGC \
@@ -161,6 +151,7 @@ jobs:
           echo "Lavalink PID: $!"
 
       - name: Wait for Lavalink Ready
+        if: matrix.component == 'lavalink'
         run: |
           echo "Waiting for Lavalink initialization..."
           READY=false
@@ -172,7 +163,6 @@ jobs:
             fi
             sleep 2
           done
-
           if [ "$READY" = "true" ]; then
             echo "Lavalink is online and listening!"
           else
@@ -182,6 +172,7 @@ jobs:
           fi
 
       - name: Start Cloudflare Tunnel & Expose Lavalink (Low-Jitter HTTP/2 Transport)
+        if: matrix.component == 'lavalink'
         id: tunnel
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
@@ -197,7 +188,6 @@ jobs:
               --heartbeat-interval 5s \
               run --token "$CF_TOKEN" > tunnel.log 2>&1 &
             echo "TUNNEL_PID=$!" >> $GITHUB_ENV
-
             HOST="${CF_CUSTOM_DOMAIN:-lavalink.opendrive.indevs.in}"
             echo "PUBLIC_HOST=$HOST" >> $GITHUB_ENV
             echo "PUBLIC_PORT=443" >> $GITHUB_ENV
@@ -213,20 +203,17 @@ jobs:
               --heartbeat-interval 5s \
               --url http://127.0.0.1:4998 > tunnel.log 2>&1 &
             echo "TUNNEL_PID=$!" >> $GITHUB_ENV
-
             TUNNEL_URL=""
             for i in {1..30}; do
               TUNNEL_URL=$(grep -o 'https://[-a-zA-Z0-9@:%._\+~#=]\+\.trycloudflare\.com' tunnel.log | head -n 1 || true)
               if [ -n "$TUNNEL_URL" ]; then break; fi
               sleep 2
             done
-
             if [ -z "$TUNNEL_URL" ]; then
               echo "::error::Failed to obtain Quick Tunnel URL!"
               cat tunnel.log || true
               exit 1
             fi
-
             HOST=$(echo "$TUNNEL_URL" | sed -e 's|^[^/]*//||' -e 's|/.*$||')
             echo "PUBLIC_HOST=$HOST" >> $GITHUB_ENV
             echo "PUBLIC_PORT=443" >> $GITHUB_ENV
@@ -235,16 +222,13 @@ jobs:
           fi
 
       - name: Announce Lavalink Connection Details
-        env:
-          NODE_PASSWORD: ${{ secrets.LAVALINK_PASSWORD || 'youshallnotpass' }}
+        if: matrix.component == 'lavalink'
         run: |
           echo "======================================================"
           echo "🎉 LAVALINK PUBLIC NODE ONLINE: $PUBLIC_URL"
           echo "======================================================"
-
           cat << 'EOF' >> $GITHUB_STEP_SUMMARY
           ## 👑 Lavalink Node Active
-
           | Parameter | Value |
           |---|---|
           | **Host** | `${{ env.PUBLIC_HOST }}` |
@@ -259,13 +243,10 @@ jobs:
 
           cat << EOF > NODE_STATUS.md
           # 🟢 Live Public Lavalink Node
-
           > **Status**: ONLINE 🟢  
           > **Session Run**: #${{ github.run_number }}  
           > **Last Started**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
-
           ### 🌐 Public Connection Details
-
           | Setting | Value |
           |---|---|
           | **Host** | \`$PUBLIC_HOST\` |
@@ -278,7 +259,6 @@ jobs:
           | **Transport** | \`Netty Native Linux Epoll\` |
           EOF
           sed -i 's/^[ ]\{10\}//' NODE_STATUS.md
-
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add NODE_STATUS.md
@@ -286,70 +266,11 @@ jobs:
           git pull --rebase origin ${{ github.ref_name }} || true
           git push origin ${{ github.ref_name }} || true
 
-      # ------------------------------------------------------------------------
-      # Optional Co-located Discord Music Bot (0.1ms Localhost Loopback Latency)
-      # ------------------------------------------------------------------------
-      - name: Setup Node.js (for Co-located Music Bot)
-        if: env.DISCORD_TOKEN != '' || env.DISCORD_TOKENS != ''
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Launch Co-located Music Bot (0ms Internal Latency)
-        if: env.DISCORD_TOKEN != '' || env.DISCORD_TOKENS != ''
-        env:
-          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-          DISCORD_TOKENS: ${{ secrets.DISCORD_TOKENS || '' }}
-          ALL_BOT_IDS: ${{ secrets.ALL_BOT_IDS || '' }}
-          CLIENT_ID: ${{ secrets.CLIENT_ID || '' }}
-          GUILD_ID: ${{ secrets.GUILD_ID || '' }}
-          NODE_PASSWORD: ${{ secrets.LAVALINK_PASSWORD || 'youshallnotpass' }}
-        run: |
-          if [ -z "$DISCORD_TOKEN" ] && [ -z "$DISCORD_TOKENS" ]; then
-            echo "No Discord token secret configured. Skipping co-located music bot."
-            exit 0
-          fi
-          echo "Discord token secret detected! Launching co-located Music Bot on loopback 127.0.0.1:4998..."
-          cd music-bot
-          npm ci --prefer-offline --no-audit
-
-          if [ -n "$CLIENT_ID" ]; then
-            echo "Deploying slash commands..."
-            node src/deploy-commands.js || true
-          fi
-
-          nohup env \
-            DISCORD_TOKEN="$DISCORD_TOKEN" \
-            DISCORD_TOKENS="$DISCORD_TOKENS" \
-            ALL_BOT_IDS="$ALL_BOT_IDS" \
-            CLIENT_ID="$CLIENT_ID" \
-            GUILD_ID="$GUILD_ID" \
-            LAVALINK_HOST="127.0.0.1" \
-            LAVALINK_PORT="4998" \
-            LAVALINK_SECURE="false" \
-            LAVALINK_PASSWORD="$NODE_PASSWORD" \
-            LAVALINK_ID="Colocated-Ultra-Node" \
-            node src/sharder.js > bot.log 2>&1 &
-
-          BOT_PID=$!
-          echo "BOT_PID=$BOT_PID" >> $GITHUB_ENV
-          echo "Music Bot successfully started with PID: $BOT_PID"
-          cd ..
-
-      - name: Keep Lavalink & Music Bot Alive & Monitor Health
-        env:
-          NODE_PASSWORD: ${{ secrets.LAVALINK_PASSWORD || 'youshallnotpass' }}
+      - name: Keep Lavalink Alive & Monitor (5.5 Hours)
+        if: matrix.component == 'lavalink'
         run: |
           END_TIME=$((SECONDS + 330 * 60))
-          echo "Starting real-time Lavalink log stream..."
           tail -f lavalink.log &
-
-          if [ -n "$BOT_PID" ]; then
-            echo "Starting real-time Music Bot log stream..."
-            tail -f music-bot/bot.log &
-          fi
-
-          echo "Keeping runner alive for 5.5 hours..."
           while [ $SECONDS -lt $END_TIME ]; do
             if ! kill -0 $LAVALINK_PID 2>/dev/null; then
               echo "::error::Lavalink process exited unexpectedly!"
@@ -361,37 +282,116 @@ jobs:
               tail -n 50 tunnel.log || true
               exit 1
             fi
-            if [ -n "$BOT_PID" ] && ! kill -0 $BOT_PID 2>/dev/null; then
-              echo "::warning::Music Bot process stopped! Attempting auto-restart..."
-              cd music-bot
-              nohup env \
-                DISCORD_TOKEN="${{ secrets.DISCORD_TOKEN }}" \
-                DISCORD_TOKENS="${{ secrets.DISCORD_TOKENS || '' }}" \
-                ALL_BOT_IDS="${{ secrets.ALL_BOT_IDS || '' }}" \
-                CLIENT_ID="${{ secrets.CLIENT_ID || '' }}" \
-                GUILD_ID="${{ secrets.GUILD_ID || '' }}" \
-                LAVALINK_HOST="127.0.0.1" \
-                LAVALINK_PORT="4998" \
-                LAVALINK_SECURE="false" \
-                LAVALINK_PASSWORD="$NODE_PASSWORD" \
-                LAVALINK_ID="Colocated-Ultra-Node" \
-                node src/sharder.js >> bot.log 2>&1 &
-              BOT_PID=$!
-              echo "BOT_PID=$BOT_PID" >> $GITHUB_ENV
-              cd ..
+            sleep 30
+          done
+
+      # ========================================================================
+      # MATRIX COMPONENT B: DISCORD MUSIC BOT FLEET
+      # ========================================================================
+      - name: Restore Bot Database & Active Sessions Cache
+        if: matrix.component == 'music-bot'
+        id: restore-bot-data
+        uses: actions/cache/restore@v4
+        with:
+          path: music-bot/data
+          key: bot-data-${{ github.run_id }}
+          restore-keys: |
+            bot-data-
+
+      - name: Restore Backup from Previous Artifact (if Cache Missed)
+        if: matrix.component == 'music-bot' && steps.restore-bot-data.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.ACTIONS_TRIGGER_TOKEN || github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          mkdir -p music-bot/data
+          echo "Attempting to retrieve last artifact backup..."
+          gh run download --name bot-backup-latest --dir music-bot/data 2>/dev/null || true
+          ls -la music-bot/data || true
+
+      - name: Setup Node.js 20.x LTS (Music Bot)
+        if: matrix.component == 'music-bot'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'music-bot/package-lock.json'
+
+      - name: Install Dependencies
+        if: matrix.component == 'music-bot'
+        run: |
+          cd music-bot
+          npm ci --prefer-offline --no-audit
+          cd ..
+
+      - name: Parse Lavalink Connection from NODE_STATUS.md
+        if: matrix.component == 'music-bot'
+        run: |
+          # Wait up to 60s for Lavalink node to initialize if using dynamic tunnel
+          if [ -z "${{ secrets.LAVALINK_HOST }}" ]; then
+            for i in {1..12}; do
+              git pull --rebase origin ${{ github.ref_name }} 2>/dev/null || true
+              if [ -f "NODE_STATUS.md" ]; then break; fi
+              sleep 5
+            done
+          fi
+          HOST=""
+          PASSWORD=""
+          if [ -f "NODE_STATUS.md" ]; then
+            HOST=$(grep -o '`https://[^`]*`' NODE_STATUS.md | sed -e 's|`https://||' -e 's|`||' | head -n 1 || true)
+            if [ -z "$HOST" ]; then
+              HOST=$(grep -oP '(?<=\*\*Host\*\* \| `)[^`]+' NODE_STATUS.md || true)
             fi
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: $NODE_PASSWORD" http://127.0.0.1:4998/version || echo "000")
-            if [ "$STATUS" != "200" ]; then
-              echo "::warning::Lavalink HTTP health check delayed! Status: $STATUS"
+            PASSWORD=$(grep -oP '(?<=\*\*Password\*\* \| `)[^`]+' NODE_STATUS.md || true)
+          fi
+          echo "PARSED_HOST=${HOST:-lavalink.opendrive.indevs.in}" >> $GITHUB_ENV
+          echo "PARSED_PORT=443" >> $GITHUB_ENV
+          echo "PARSED_SECURE=true" >> $GITHUB_ENV
+          echo "PARSED_PASSWORD=${PASSWORD:-youshallnotpass}" >> $GITHUB_ENV
+
+      - name: Register Discord Slash Commands
+        if: matrix.component == 'music-bot'
+        run: |
+          cd music-bot
+          node src/deploy-commands.js || true
+          cd ..
+
+      - name: Start Music Bot Fleet
+        if: matrix.component == 'music-bot'
+        env:
+          LAVALINK_HOST: ${{ secrets.LAVALINK_HOST || env.PARSED_HOST }}
+          LAVALINK_PORT: ${{ secrets.LAVALINK_PORT || env.PARSED_PORT }}
+          LAVALINK_PASSWORD: ${{ secrets.LAVALINK_PASSWORD || env.PARSED_PASSWORD }}
+          LAVALINK_SECURE: ${{ secrets.LAVALINK_SECURE || env.PARSED_SECURE }}
+          AUTO_MAXIMIZE_BITRATE: "true"
+        run: |
+          if [ -z "$DISCORD_TOKEN" ] && [ -z "$DISCORD_TOKENS" ]; then
+            echo "::error::Neither DISCORD_TOKEN nor DISCORD_TOKENS secret is configured! Please configure bot token(s) in repository secrets."
+            exit 1
+          fi
+          echo "Starting Music Bot Fleet connected to Lavalink: $LAVALINK_HOST:$LAVALINK_PORT..."
+          cd music-bot
+          nohup node src/sharder.js > bot.log 2>&1 &
+          echo "BOT_PID=$!" >> $GITHUB_ENV
+          echo "Fleet Process PID: $!"
+          cd ..
+
+      - name: Keep Bot Fleet Alive & Stream Logs (5.5 Hours)
+        if: matrix.component == 'music-bot'
+        run: |
+          END_TIME=$((SECONDS + 330 * 60))
+          tail -f music-bot/bot.log &
+          while [ $SECONDS -lt $END_TIME ]; do
+            if ! kill -0 $BOT_PID 2>/dev/null; then
+              echo "::error::Music Bot fleet process died!"
+              tail -n 50 music-bot/bot.log || true
+              exit 1
             fi
             sleep 30
           done
 
-      # ------------------------------------------------------------------------
-      # Triple-Tier Backup Phase (Artifacts + Cache + Git)
-      # ------------------------------------------------------------------------
       - name: Flush Bot Database & Save Active Sessions
-        if: always()
+        if: matrix.component == 'music-bot' && always()
         run: |
           if [ -d "music-bot/data" ]; then
             echo "Flushing SQLite WAL checkpoints & capturing active sessions..."
@@ -406,14 +406,14 @@ jobs:
           fi
 
       - name: Save Bot Database & Active Sessions Cache
-        if: always()
+        if: matrix.component == 'music-bot' && always()
         uses: actions/cache/save@v4
         with:
           path: music-bot/data
           key: bot-data-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Upload Persistent Bot Data Artifact
-        if: always()
+        if: matrix.component == 'music-bot' && always()
         uses: actions/upload-artifact@v4
         with:
           name: bot-backup-latest
@@ -422,7 +422,7 @@ jobs:
           overwrite: true
 
       - name: Commit and Push Persistent State to Repository
-        if: always()
+        if: matrix.component == 'music-bot' && always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -437,39 +437,30 @@ jobs:
           git push origin ${{ github.ref_name }} || true
 
   # ============================================================================
-  # RECOVERY JOB (Self-Healing 24/7 Loop)
+  # 24/7 SELF-HEALING RECOVERY LOOP (Runs Once for Both Services)
   # ============================================================================
   recover:
-    needs: lavalink
-    if: always() && needs.lavalink.result != 'cancelled'
+    name: 24/7 Self-Healing Dispatcher
+    needs: matrix-runner
+    if: always() && needs.matrix-runner.result != 'cancelled'
     runs-on: ubuntu-latest
     steps:
-      - name: Prevent Duplicate Sessions
-        id: check_active
+      - name: Prevent Duplicate Sessions & Re-dispatch Next Session
         env:
           GH_TOKEN: ${{ secrets.ACTIONS_TRIGGER_TOKEN || github.token }}
           GH_REPOSITORY: ${{ github.repository }}
           CURRENT_RUN_ID: ${{ github.run_id }}
-        run: |
-          set -euo pipefail
-          runs="$(gh api "repos/${GH_REPOSITORY}/actions/workflows/lavalink.yml/runs?per_page=30" || echo '{"workflow_runs":[]}')"
-          active="$(jq --arg current "${CURRENT_RUN_ID}" '[.workflow_runs[] | select((.id | tostring) != $current) | select(.status == "queued" or .status == "in_progress" or .status == "pending")] | length' <<< "$runs")"
-          if [ "$active" -gt 0 ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "Another session is already running. Skipping duplicate dispatch."
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Dispatch Next Session
-        if: steps.check_active.outputs.skip != 'true'
-        env:
-          GH_TOKEN: ${{ secrets.ACTIONS_TRIGGER_TOKEN || github.token }}
-          GH_REPOSITORY: ${{ github.repository }}
           BRANCH: ${{ github.ref_name }}
         run: |
-          echo "Dispatching next 24/7 session on branch: $BRANCH..."
-          gh api --method POST \
-            "repos/${GH_REPOSITORY}/actions/workflows/lavalink.yml/dispatches" \
-            -f ref="$BRANCH"
-          echo "Next session dispatched successfully!"
+          set -euo pipefail
+          runs="$(gh api "repos/${GH_REPOSITORY}/actions/workflows/main.yml/runs?per_page=30" || echo '{"workflow_runs":[]}')"
+          active="$(jq --arg current "${CURRENT_RUN_ID}" '[.workflow_runs[] | select((.id | tostring) != $current) | select(.status == "queued" or .status == "in_progress" or .status == "pending")] | length' <<< "$runs")"
+          if [ "$active" -gt 0 ]; then
+            echo "Another matrix session is already running. Skipping duplicate dispatch."
+          else
+            echo "Dispatching next 24/7 production matrix session on branch: $BRANCH..."
+            gh api --method POST \
+              "repos/${GH_REPOSITORY}/actions/workflows/main.yml/dispatches" \
+              -f ref="$BRANCH"
+            echo "Next matrix session dispatched successfully!"
+          fi
