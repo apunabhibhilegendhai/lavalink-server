@@ -26,6 +26,7 @@ db.pragma("synchronous = NORMAL");
 db.exec(`
   CREATE TABLE IF NOT EXISTS guild_settings (
     guild_id TEXT PRIMARY KEY,
+    prefix TEXT DEFAULT '.',
     request_channel_id TEXT,
     request_message_id TEXT,
     dj_role_id TEXT,
@@ -69,9 +70,25 @@ db.exec(`
   );
 `);
 
+// Safe migration for existing databases: ensure prefix column exists
+try {
+  db.exec("ALTER TABLE guild_settings ADD COLUMN prefix TEXT DEFAULT '.'");
+} catch (_) {}
+
+// In-memory prefix cache for sub-microsecond command routing
+const prefixCache = new Map();
+
 // Prepared Statements
 const stmts = {
   getGuild: db.prepare("SELECT * FROM guild_settings WHERE guild_id = ?"),
+  getPrefix: db.prepare("SELECT prefix FROM guild_settings WHERE guild_id = ?"),
+  setPrefix: db.prepare(`
+    INSERT INTO guild_settings (guild_id, prefix, updated_at)
+    VALUES (?, ?, ?)
+    ON CONFLICT(guild_id) DO UPDATE SET
+      prefix = excluded.prefix,
+      updated_at = excluded.updated_at
+  `),
   upsertRequestChannel: db.prepare(`
     INSERT INTO guild_settings (guild_id, request_channel_id, request_message_id, updated_at)
     VALUES (?, ?, ?, ?)
@@ -127,6 +144,22 @@ module.exports = {
   db,
 
   // Guild Configuration
+  getGuildPrefix(guildId) {
+    if (!guildId) return ".";
+    if (prefixCache.has(guildId)) return prefixCache.get(guildId);
+    const row = stmts.getPrefix.get(guildId);
+    const p = row?.prefix || ".";
+    prefixCache.set(guildId, p);
+    return p;
+  },
+
+  setGuildPrefix(guildId, newPrefix) {
+    if (!guildId) return;
+    const cleanPrefix = (newPrefix || ".").trim();
+    prefixCache.set(guildId, cleanPrefix);
+    return stmts.setPrefix.run(guildId, cleanPrefix, Date.now());
+  },
+
   getGuildSettings(guildId) {
     return stmts.getGuild.get(guildId) || null;
   },
