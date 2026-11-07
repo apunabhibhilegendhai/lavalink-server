@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { EQList } = require("lavalink-client");
 const { actionText, errorText } = require("../../utils/responses");
+const emojis = require("../../utils/emojis");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -38,7 +39,7 @@ module.exports = {
       case "reset":
         await player.filterManager.resetFilters();
         return interaction.reply(
-          actionText("🔄", "Reset all audio filters.", "Restored to Opus Direct Passthrough (0ms latency)")
+          actionText(emojis.filters.reset, "Reset all audio filters.", "Restored to Opus Direct Passthrough (0ms latency)")
         );
 
       case "normalizer":
@@ -51,75 +52,75 @@ module.exports = {
           { band: 4, gain: -0.05 },
         ]);
         return interaction.reply(
-          actionText("🎚️", "Activated **Sound Normalizer** filter.", "Dynamic limiter evens out track volumes")
+          actionText(emojis.filters.normalizer, "Activated **Sound Normalizer** filter.", "Dynamic limiter evens out track volumes")
         );
 
       case "8d":
         await player.filterManager.resetFilters();
         await player.filterManager.toggleRotation();
         return interaction.reply(
-          actionText("🎧", "Activated **8D Spatial Audio**.", "Orbital 360° panning simulation (best with headphones)")
+          actionText(emojis.filters.spatial8D, "Activated **8D Spatial Audio**.", "Orbital 360° panning simulation (best with headphones)")
         );
 
       case "bass_low":
         await player.filterManager.resetFilters();
         if (EQList?.BassboostLow) await player.filterManager.setEQPreset(EQList.BassboostLow);
         return interaction.reply(
-          actionText("🔊", "Activated **Bass Boost (Low)**.", "+3dB low-end enhancement")
+          actionText(emojis.filters.bass, "Activated **Bass Boost (Low)**.", "+3dB low-end enhancement")
         );
 
       case "bass_med":
         await player.filterManager.resetFilters();
         if (EQList?.BassboostMedium) await player.filterManager.setEQPreset(EQList.BassboostMedium);
         return interaction.reply(
-          actionText("🔊", "Activated **Bass Boost (Medium)**.", "+6dB punchy club bass")
+          actionText(emojis.filters.bass, "Activated **Bass Boost (Medium)**.", "+6dB punchy club bass")
         );
 
       case "bass_high":
         await player.filterManager.resetFilters();
         if (EQList?.BassboostHigh) await player.filterManager.setEQPreset(EQList.BassboostHigh);
         return interaction.reply(
-          actionText("💥", "Activated **Bass Boost (High)**.", "+9dB heavy sub-bass")
+          actionText(emojis.filters.bass, "Activated **Bass Boost (High)**.", "+9dB heavy sub-bass")
         );
 
       case "nightcore":
         await player.filterManager.resetFilters();
         await player.filterManager.toggleNightcore();
         return interaction.reply(
-          actionText("⚡", "Activated **Nightcore** mode.", "Speed: 1.15x • Pitch: 1.25x")
+          actionText(emojis.filters.nightcore, "Activated **Nightcore** mode.", "Speed: 1.15x • Pitch: 1.25x")
         );
 
       case "vaporwave":
         await player.filterManager.resetFilters();
         await player.filterManager.toggleVaporwave();
         return interaction.reply(
-          actionText("🌊", "Activated **Vaporwave** mode.", "Speed: 0.85x • Pitch: 0.80x chill lo-fi")
+          actionText(emojis.filters.vaporwave, "Activated **Vaporwave** mode.", "Speed: 0.85x • Pitch: 0.80x chill lo-fi")
         );
 
       case "karaoke":
         await player.filterManager.resetFilters();
         await player.filterManager.toggleKaraoke();
         return interaction.reply(
-          actionText("🎤", "Activated **Karaoke** mode.", "Attenuated center vocal frequencies for sing-along")
+          actionText(emojis.filters.karaoke, "Activated **Karaoke** mode.", "Attenuated center vocal frequencies for sing-along")
         );
 
       case "pop":
         await player.filterManager.resetFilters();
         if (EQList?.Pop) await player.filterManager.setEQPreset(EQList.Pop);
         return interaction.reply(
-          actionText("🎵", "Activated **Pop Curve Equalizer**.", "Crisp vocals & punchy mid-bass")
+          actionText(emojis.filters.pop, "Activated **Pop Curve Equalizer**.", "Crisp vocals & punchy mid-bass")
         );
 
       case "rock":
         await player.filterManager.resetFilters();
         if (EQList?.Rock) await player.filterManager.setEQPreset(EQList.Rock);
         return interaction.reply(
-          actionText("🎸", "Activated **Rock Curve Equalizer**.", "Enhanced guitars & dynamic highs")
+          actionText(emojis.filters.rock, "Activated **Rock Curve Equalizer**.", "Enhanced guitars & dynamic highs")
         );
 
       default:
         await player.filterManager.resetFilters();
-        return interaction.reply(actionText("🔄", "All audio filters cleared."));
+        return interaction.reply(actionText(emojis.filters.reset, "All audio filters cleared."));
     }
   },
 };
