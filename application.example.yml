@@ -29,7 +29,7 @@ koe:
     useEpoll: true # Linux native C-epoll network transport (lowest UDP voice latency)
     useKQueue: false
     highPacketPriority: true # Real-time scheduling priority for Discord voice frames
-    bufferDurationMs: 400
+    bufferDurationMs: 300 # Low-jitter native audio queue (ultra-low latency)
     byteBufAllocator: "pooled" # Netty pooled off-heap direct buffers
 
 lavalink:
@@ -37,14 +37,20 @@ lavalink:
     pluginsDir: "./plugins"
     server:
         password: "YOUR_LAVALINK_PASSWORD" # Change this password
-        bufferDurationMs: 400
-        frameBufferDurationMs: 5000
+        bufferDurationMs: 300 # JDA-NAS audio queue size (ms)
+        frameBufferDurationMs: 1500 # Pre-buffered frames: 1.5s for instant <100ms track starts
         playerUpdateInterval: 2
-        opusEncodingQuality: 10
-        resamplingQuality: MEDIUM
-        trackStuckThresholdMs: 10000
+        opusEncodingQuality: 10 # Studio grade: 10 is maximum VBR Opus complexity
+        resamplingQuality: HIGH # Audiophile grade: band-limited sinc interpolation (zero aliasing)
+        trackStuckThresholdMs: 8000
         useSeekGhosting: false
         gcWarnings: false
+        koe:
+            useEpoll: true
+            useKQueue: false
+            highPacketPriority: true
+            bufferDurationMs: 300
+            byteBufAllocator: "pooled"
         youtubeSearchEnabled: false # Handled via dev.lavalink.youtube
         soundcloudSearchEnabled: true
         sources:

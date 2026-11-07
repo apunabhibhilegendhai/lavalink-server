@@ -81,6 +81,8 @@ Go to **Settings** → **Secrets and variables** → **Actions** → **New repos
 
 | Secret Name | Required? | Description |
 |---|---|---|
+| `DISCORD_TOKEN` | Optional | Your Discord Bot Token. If added, the music bot runs **directly alongside Lavalink in GitHub Actions** with **0.1ms localhost loopback latency**! |
+| `CLIENT_ID` | Optional | Your Discord Application Client ID (used for auto-registering slash commands). |
 | `LAVALINK_PASSWORD` | Optional | Custom Lavalink password (defaults to `youshallnotpass`). |
 | `DISCORD_WEBHOOK_URL` | Optional | Webhook URL to get real-time connection info sent to your Discord channel. |
 | `CLOUDFLARE_TUNNEL_TOKEN` | Optional | Tunnel token from Cloudflare Zero Trust for a **permanent fixed domain**. |

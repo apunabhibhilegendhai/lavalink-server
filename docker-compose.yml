@@ -6,7 +6,7 @@ services:
     container_name: lavalink
     restart: unless-stopped
     environment:
-      - JAVA_OPTS=-XX:+UseZGC -XX:+ZGenerational -Xms1G -Xmx2G -XX:+AlwaysPreTouch -XX:+UseStringDeduplication -Dio.netty.allocator.type=pooled -Dnetworkaddress.cache.ttl=120 -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true
+      - JAVA_OPTS=-XX:+UseZGC -XX:+ZGenerational -Xms1G -Xmx2G -XX:+AlwaysPreTouch -XX:+UseStringDeduplication -Dio.netty.allocator.type=pooled -Dio.netty.allocator.numDirectArenas=4 -Dio.netty.recycler.maxCapacityPerThread=4096 -Dnetworkaddress.cache.ttl=60 -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true -Djdk.net.hosts.resolver=SYSTEM
       - LAVALINK_SERVER_PASSWORD=${LAVALINK_PASSWORD:-youshallnotpass}
       - PLUGINS_YOUTUBE_OAUTH_REFRESH_TOKEN=${YOUTUBE_REFRESH_TOKEN:-}
     volumes:

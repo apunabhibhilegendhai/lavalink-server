@@ -27,6 +27,25 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Restore Bot Database & Active Sessions Cache
+        id: restore-bot-data
+        uses: actions/cache/restore@v4
+        with:
+          path: music-bot/data
+          key: bot-data-${{ github.run_id }}
+          restore-keys: |
+            bot-data-
+
+      - name: Restore Backup from Previous Artifact (if Cache Missed)
+        if: steps.restore-bot-data.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.ACTIONS_TRIGGER_TOKEN || github.token }}
+        run: |
+          mkdir -p music-bot/data
+          echo "Attempting to retrieve last artifact backup..."
+          gh run download --name bot-backup-latest --dir music-bot/data 2>/dev/null || true
+          ls -la music-bot/data || true
+
       - name: Setup Java 21 LTS
         uses: actions/setup-java@v4
         with:
@@ -92,8 +111,8 @@ jobs:
           # High-performance socket buffer limits
           sudo sysctl -w net.core.rmem_max=16777216 || true
           sudo sysctl -w net.core.wmem_max=16777216 || true
-          sudo sysctl -w net.core.rmem_default=262144 || true
-          sudo sysctl -w net.core.wmem_default=262144 || true
+          sudo sysctl -w net.core.rmem_default=2097152 || true
+          sudo sysctl -w net.core.wmem_default=2097152 || true
           sudo sysctl -w net.ipv4.tcp_rmem="4096 87380 16777216" || true
           sudo sysctl -w net.ipv4.tcp_wmem="4096 65536 16777216" || true
           sudo sysctl -w net.ipv4.udp_rmem_min=16384 || true
@@ -262,14 +281,62 @@ jobs:
           git commit -m "docs: update live public node status [skip ci]" || true
           git push origin main || true
 
-      - name: Keep Lavalink Alive & Monitor Health
+      # ------------------------------------------------------------------------
+      # Optional Co-located Discord Music Bot (0.1ms Localhost Loopback Latency)
+      # ------------------------------------------------------------------------
+      - name: Setup Node.js (for Co-located Music Bot)
+        if: ${{ secrets.DISCORD_TOKEN != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Launch Co-located Music Bot (0ms Internal Latency)
+        if: ${{ secrets.DISCORD_TOKEN != '' }}
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID || '' }}
+          GUILD_ID: ${{ secrets.GUILD_ID || '' }}
+          NODE_PASSWORD: ${{ secrets.LAVALINK_PASSWORD || 'youshallnotpass' }}
+        run: |
+          echo "DISCORD_TOKEN secret detected! Launching co-located Music Bot on loopback 127.0.0.1:4998..."
+          cd music-bot
+          npm ci --prefer-offline --no-audit
+
+          if [ -n "$CLIENT_ID" ]; then
+            echo "Deploying slash commands..."
+            node src/deploy-commands.js || true
+          fi
+
+          nohup env \
+            DISCORD_TOKEN="$DISCORD_TOKEN" \
+            CLIENT_ID="$CLIENT_ID" \
+            GUILD_ID="$GUILD_ID" \
+            LAVALINK_HOST="127.0.0.1" \
+            LAVALINK_PORT="4998" \
+            LAVALINK_SECURE="false" \
+            LAVALINK_PASSWORD="$NODE_PASSWORD" \
+            LAVALINK_ID="Colocated-Ultra-Node" \
+            node src/sharder.js > bot.log 2>&1 &
+
+          BOT_PID=$!
+          echo "BOT_PID=$BOT_PID" >> $GITHUB_ENV
+          echo "Music Bot successfully started with PID: $BOT_PID"
+          cd ..
+
+      - name: Keep Lavalink & Music Bot Alive & Monitor Health
         env:
           NODE_PASSWORD: ${{ secrets.LAVALINK_PASSWORD || 'youshallnotpass' }}
         run: |
           END_TIME=$((SECONDS + 330 * 60))
           echo "Starting real-time Lavalink log stream..."
           tail -f lavalink.log &
-          echo "Keeping Lavalink runner alive for 5.5 hours..."
+
+          if [ -n "$BOT_PID" ]; then
+            echo "Starting real-time Music Bot log stream..."
+            tail -f music-bot/bot.log &
+          fi
+
+          echo "Keeping runner alive for 5.5 hours..."
           while [ $SECONDS -lt $END_TIME ]; do
             if ! kill -0 $LAVALINK_PID 2>/dev/null; then
               echo "::error::Lavalink process exited unexpectedly!"
@@ -281,12 +348,77 @@ jobs:
               tail -n 50 tunnel.log || true
               exit 1
             fi
+            if [ -n "$BOT_PID" ] && ! kill -0 $BOT_PID 2>/dev/null; then
+              echo "::warning::Music Bot process stopped! Attempting auto-restart..."
+              cd music-bot
+              nohup env \
+                DISCORD_TOKEN="${{ secrets.DISCORD_TOKEN }}" \
+                CLIENT_ID="${{ secrets.CLIENT_ID || '' }}" \
+                GUILD_ID="${{ secrets.GUILD_ID || '' }}" \
+                LAVALINK_HOST="127.0.0.1" \
+                LAVALINK_PORT="4998" \
+                LAVALINK_SECURE="false" \
+                LAVALINK_PASSWORD="$NODE_PASSWORD" \
+                LAVALINK_ID="Colocated-Ultra-Node" \
+                node src/sharder.js >> bot.log 2>&1 &
+              BOT_PID=$!
+              echo "BOT_PID=$BOT_PID" >> $GITHUB_ENV
+              cd ..
+            fi
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: $NODE_PASSWORD" http://127.0.0.1:4998/version || echo "000")
             if [ "$STATUS" != "200" ]; then
               echo "::warning::Lavalink HTTP health check delayed! Status: $STATUS"
             fi
             sleep 30
           done
+
+      # ------------------------------------------------------------------------
+      # Triple-Tier Backup Phase (Artifacts + Cache + Git)
+      # ------------------------------------------------------------------------
+      - name: Flush Bot Database & Save Active Sessions
+        if: always()
+        run: |
+          if [ -d "music-bot/data" ]; then
+            echo "Flushing SQLite WAL checkpoints & capturing active sessions..."
+            if [ -n "$BOT_PID" ]; then
+              kill -SIGTERM $BOT_PID 2>/dev/null || true
+              sleep 3
+            fi
+            cd music-bot
+            node -e "try { require('./src/database/db').checkpoint(); console.log('DB Checkpoint successful'); } catch(e){ console.log(e.message); }" || true
+            cd ..
+            ls -lh music-bot/data || true
+          fi
+
+      - name: Save Bot Database & Active Sessions Cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: music-bot/data
+          key: bot-data-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Upload Persistent Bot Data Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bot-backup-latest
+          path: music-bot/data
+          retention-days: 30
+          overwrite: true
+
+      - name: Commit and Push Persistent State to Repository
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -f "music-bot/data/bot.db" ]; then
+            git add music-bot/data/bot.db
+          fi
+          if [ -f "music-bot/data/active_sessions.json" ]; then
+            git add music-bot/data/active_sessions.json
+          fi
+          git commit -m "chore(data): auto-sync bot database & active sessions [skip ci]" || true
+          git push origin main || true
 
   # ============================================================================
   # RECOVERY JOB (Self-Healing 24/7 Loop)
