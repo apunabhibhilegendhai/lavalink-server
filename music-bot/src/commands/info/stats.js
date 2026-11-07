@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const config = require("../../config");
 const { formatDuration, formatBytes } = require("../../utils/formatters");
+const emojis = require("../../utils/emojis");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -40,7 +41,7 @@ module.exports = {
     const botMemory = formatBytes(totalRamBytes);
 
     // Lavalink metrics
-    const nodeStatus = node?.connected ? "🟢 Online" : "🔴 Disconnected";
+    const nodeStatus = node?.connected ? `${emojis.online} Online` : `${emojis.offline} Disconnected`;
     const nodeHost = node?.options?.host || config.lavalink.host;
     const lavalinkVersion = info?.version?.semver || "4.2.2";
     const jvmVersion = info?.jvm || "21 (Generational ZGC)";
@@ -59,13 +60,13 @@ module.exports = {
 
     const embed = new EmbedBuilder()
       .setColor(config.colors.surface || 0x2b2d31)
-      .setTitle("⚡ Pulse Engine & Cluster Telemetry")
+      .setTitle(`${emojis.help} Pulse Engine & Cluster Telemetry`)
       .setDescription(
         `High-throughput enterprise architecture with isolated Discord sharding and Lavalink v4.\n`
       )
       .addFields(
         {
-          name: "🌐 Lavalink Node Health",
+          name: `${emojis.disc} Lavalink Node Health`,
           value:
             `• **Status:** ${nodeStatus}\n` +
             `• **Endpoint:** \`${nodeHost}:${node?.options?.port || 443}\`\n` +
@@ -75,7 +76,7 @@ module.exports = {
           inline: false,
         },
         {
-          name: "📊 Node Resource Utilization",
+          name: `${emojis.stats} Node Resource Utilization`,
           value:
             `• **Active Players:** \`${playersCount}\` (\`${playingCount}\` actively streaming)\n` +
             `• **Heap Memory (RAM):** \`${lavalinkRam}\`\n` +
@@ -84,7 +85,7 @@ module.exports = {
           inline: false,
         },
         {
-          name: "🤖 Discord Cluster Scalability",
+          name: `${emojis.dj} Discord Cluster Scalability`,
           value:
             `• **Topology:** \`${shardStatus}\`\n` +
             `• **Guilds (Global):** \`${totalGuilds.toLocaleString()}\`\n` +

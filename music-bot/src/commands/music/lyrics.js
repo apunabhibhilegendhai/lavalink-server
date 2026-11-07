@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require("discord.js");
 const { errorText } = require("../../utils/responses");
 const { formatDuration, truncate } = require("../../utils/formatters");
+const emojis = require("../../utils/emojis");
 const config = require("../../config");
 const logger = require("../../utils/logger");
 
@@ -125,10 +126,10 @@ async function executeLyricsLookup(interaction, player, queryInput = null) {
 
   const cleanTitle = truncate(result.title, 55);
   const cleanAuthor = result.author || "Unknown";
-  const lyricType = result.synced ? "⚡ Real-Time Synced" : "📄 Plain Text";
+  const lyricType = result.synced ? `${emojis.help} Real-Time Synced` : `📄 Plain Text`;
 
   // If text is compact enough for standard Discord message limit (2000 chars), use pure markdown text!
-  const textPayload = `📜 **Lyrics: ${cleanTitle}** — \`${cleanAuthor}\`\n\n${lyricsBody}\n\n-# ${lyricType} · Pulse Lyrics Engine`;
+  const textPayload = `${emojis.scroll} **Lyrics: ${cleanTitle}** — \`${cleanAuthor}\`\n\n${lyricsBody}\n\n-# ${lyricType} · Pulse Lyrics Engine`;
 
   if (textPayload.length <= 1950) {
     return interaction.editReply({
@@ -144,7 +145,7 @@ async function executeLyricsLookup(interaction, player, queryInput = null) {
 
   const embed = new EmbedBuilder()
     .setColor(config.colors.surface || 0x2b2d31)
-    .setTitle(`📜 Lyrics: ${cleanTitle}`)
+    .setTitle(`${emojis.scroll} Lyrics: ${cleanTitle}`)
     .setDescription(`**Artist:** \`${cleanAuthor}\`\n\n${lyricsBody}`)
     .setFooter({ text: `${lyricType} • Pulse Lyrics Engine` });
 

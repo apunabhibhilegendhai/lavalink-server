@@ -41,7 +41,7 @@ function buildNowPlayingEmbed(player) {
   const albumOrSource = track.pluginInfo?.albumName || track.pluginInfo?.album?.name || theme.name;
 
   const progressSlider = track.info.isStream
-    ? "🔴 `[LIVE STREAM]`"
+    ? `${emojis.live} \`[LIVE STREAM]\``
     : `${formatDuration(player.position)} ${createProgressBar(player.position, track.info.duration, 12)} ${formatDuration(track.info.duration)}`;
 
   // Eara Format Line 1: [Title](URI) — Artist
@@ -248,7 +248,7 @@ async function handlePlayerButton(interaction, client) {
     const voiceChannel = member.voice?.channel;
     if (!voiceChannel) {
       return interaction.reply({
-        content: "⚠️ You must be connected to a voice channel to stream playlists.",
+        content: `${emojis.warn} You must be connected to a voice channel to stream playlists.`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
@@ -272,7 +272,7 @@ async function handlePlayerButton(interaction, client) {
 
     if (!targetTracks || targetTracks.length === 0) {
       return interaction.editReply({
-        content: `❌ Playlist **${playlistName}** is empty or does not exist.`,
+        content: `${emojis.cross} Playlist **${playlistName}** is empty or does not exist.`,
       });
     }
 
@@ -308,7 +308,7 @@ async function handlePlayerButton(interaction, client) {
     }
 
     return interaction.editReply({
-      content: `🎵 Loaded and queued **${loaded} track(s)** from **${playlistName}**!`,
+      content: `${emojis.music} Loaded and queued **${loaded} track(s)** from **${playlistName}**!`,
     });
   }
 
@@ -316,7 +316,7 @@ async function handlePlayerButton(interaction, client) {
 
   if (!player) {
     return interaction.reply({
-      content: "❌ No active audio player found in this server.",
+      content: `${emojis.cross} No active audio player found in this server.`,
       flags: MessageFlags.Ephemeral,
       allowedMentions: { parse: [], users: [] },
     });
@@ -325,7 +325,7 @@ async function handlePlayerButton(interaction, client) {
   // Voice channel safety validation
   if (!member.voice.channelId) {
     return interaction.reply({
-      content: "⚠️ You must be connected to a voice channel to use audio controls.",
+      content: `${emojis.warn} You must be connected to a voice channel to use audio controls.`,
       flags: MessageFlags.Ephemeral,
       allowedMentions: { parse: [], users: [] },
     });
@@ -333,7 +333,7 @@ async function handlePlayerButton(interaction, client) {
 
   if (player.voiceChannelId && member.voice.channelId !== player.voiceChannelId) {
     return interaction.reply({
-      content: `⚠️ You must be in the same voice channel (<#${player.voiceChannelId}>) to use audio controls.`,
+      content: `${emojis.warn} You must be in the same voice channel (<#${player.voiceChannelId}>) to use audio controls.`,
       flags: MessageFlags.Ephemeral,
       allowedMentions: { parse: [], users: [] },
     });
@@ -394,14 +394,14 @@ async function handlePlayerButton(interaction, client) {
       const prevTrack = player.queue.previous[0];
       if (!prevTrack) {
         return interaction.reply({
-          content: "❌ No previous track found in session history.",
+          content: `${emojis.cross} No previous track found in session history.`,
           flags: MessageFlags.Ephemeral,
           allowedMentions: { parse: [], users: [] },
         });
       }
       await player.play({ track: prevTrack });
       await interaction.reply({
-        content: `⏮️ Playing previous: **${truncate(prevTrack.info.title, 45)}**`,
+        content: `${emojis.previous} Playing previous: **${truncate(prevTrack.info.title, 45)}**`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
@@ -412,7 +412,7 @@ async function handlePlayerButton(interaction, client) {
       const track = player.queue.current;
       if (!track) {
         return interaction.reply({
-          content: "❌ No song is currently streaming.",
+          content: `${emojis.cross} No song is currently streaming.`,
           flags: MessageFlags.Ephemeral,
           allowedMentions: { parse: [], users: [] },
         });
@@ -432,7 +432,7 @@ async function handlePlayerButton(interaction, client) {
       );
 
       const dmContent =
-        `🤍 **Saved to Favorites: [${cleanTitle}](${uri})**\n` +
+        `${emojis.heart} **Saved to Favorites: [${cleanTitle}](${uri})**\n` +
         `• **Artist:** \`${track.info.author || "Unknown"}\`\n` +
         `• **Duration:** \`${formatDuration(track.info.duration)}\`\n` +
         `• **Server:** \`${interaction.guild.name}\`\n\n` +
@@ -445,13 +445,13 @@ async function handlePlayerButton(interaction, client) {
           allowedMentions: { parse: [], users: [] },
         });
         return interaction.reply({
-          content: `🤍 Saved **[${cleanTitle}](${uri})** to your Favorites & sent details to your DMs!\n-# Use \`/playlist play-favorites\` to stream anytime`,
+          content: `${emojis.heart} Saved **[${cleanTitle}](${uri})** to your Favorites & sent details to your DMs!\n-# Use \`/playlist play-favorites\` to stream anytime`,
           flags: MessageFlags.Ephemeral,
           allowedMentions: { parse: [], users: [] },
         });
       } catch {
         return interaction.reply({
-          content: `🤍 Saved **[${cleanTitle}](${uri})** to your Favorites!\n-# Use \`/playlist play-favorites\` to stream anytime`,
+          content: `${emojis.heart} Saved **[${cleanTitle}](${uri})** to your Favorites!\n-# Use \`/playlist play-favorites\` to stream anytime`,
           flags: MessageFlags.Ephemeral,
           allowedMentions: { parse: [], users: [] },
         });
@@ -473,8 +473,8 @@ async function handlePlayerButton(interaction, client) {
       const trackAuthor = currentTrack?.info?.author || "Unknown";
 
       const consoleContent =
-        `🎛️ **Audio Console & Control Center**\n` +
-        `▶️ **Now Playing:** [${trackTitle}](${trackUri}) — \`${trackAuthor}\`\n\n` +
+        `${emojis.equalizer} **Audio Console & Control Center**\n` +
+        `${emojis.play} **Now Playing:** [${trackTitle}](${trackUri}) — \`${trackAuthor}\`\n\n` +
         `• **Volume:** \`${player.volume}%\` · **Repeat:** \`${loopMode.toUpperCase()}\`\n` +
         `• **Autoplay:** \`${isAutoplay ? "ENABLED" : "OFF"}\` · **24/7 Mode:** \`${is247 ? "ACTIVE" : "OFF"}\`\n` +
         `• **Queue:** \`${player.queue.tracks.length} track(s)\` (\`${formatDuration(totalDuration)}\` total)\n\n` +
@@ -517,14 +517,14 @@ async function handlePlayerButton(interaction, client) {
       if (!checkDJ(false)) return;
       if (player.queue.tracks.length < 2) {
         return interaction.reply({
-          content: "⚠️ Not enough songs in queue to shuffle (minimum 2 needed).",
+          content: `${emojis.warn} Not enough songs in queue to shuffle (minimum 2 needed).`,
           flags: MessageFlags.Ephemeral,
           allowedMentions: { parse: [], users: [] },
         });
       }
       player.queue.shuffle();
       await interaction.reply({
-        content: `🔀 Shuffled **${player.queue.tracks.length}** songs in queue!`,
+        content: `${emojis.shuffle} Shuffled **${player.queue.tracks.length}** songs in queue!`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
@@ -551,8 +551,8 @@ async function handlePlayerButton(interaction, client) {
       await updatePlayerInteraction(interaction, player);
       await interaction.followUp({
         content: newAutoplay
-          ? "♾️ **Autoplay enabled**: Next songs will play automatically after this track finishes."
-          : "♾️ **Autoplay disabled**.",
+          ? `${emojis.autoplay} **Autoplay enabled**: Next songs will play automatically after this track finishes.`
+          : `${emojis.autoplay} **Autoplay disabled**.`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
@@ -566,7 +566,7 @@ async function handlePlayerButton(interaction, client) {
 
       if (!current && tracks.length === 0) {
         return interaction.reply({
-          content: "📑 The queue is currently empty. Use `/play` to add tracks!",
+          content: `${emojis.queue} The queue is currently empty. Use \`/play\` to add tracks!`,
           flags: MessageFlags.Ephemeral,
           allowedMentions: { parse: [], users: [] },
         });
@@ -583,8 +583,8 @@ async function handlePlayerButton(interaction, client) {
       );
 
       const queueContent =
-        `📑 **Upcoming Queue — ${tracks.length} track(s)**\n\n` +
-        `▶️ **Now Playing:** [${truncate(current?.info?.title || "Nothing", 40)}](${current?.info?.uri || "https://discord.com"})\n\n` +
+        `${emojis.queue} **Upcoming Queue — ${tracks.length} track(s)**\n\n` +
+        `${emojis.play} **Now Playing:** [${truncate(current?.info?.title || "Nothing", 40)}](${current?.info?.uri || "https://discord.com"})\n\n` +
         `**Next Tracks:**\n${queueItems.length > 0 ? queueItems.join("\n") + remaining : "*No upcoming tracks in queue.*"}\n\n` +
         `-# Total Duration: \`${formatDuration(totalDuration)}\` · Autoplay: \`${player.get("autoplay") ? "ON" : "OFF"}\``;
 
@@ -600,7 +600,7 @@ async function handlePlayerButton(interaction, client) {
       player.queue.tracks.splice(0, player.queue.tracks.length);
       await player.destroy("User pressed Stop button");
       await interaction.reply({
-        content: "⏹️ Playback stopped, queue cleared, and disconnected from voice channel.",
+        content: `${emojis.stop} Playback stopped, queue cleared, and disconnected from voice channel.`,
         allowedMentions: { parse: [], users: [] },
       });
       break;
@@ -611,7 +611,7 @@ async function handlePlayerButton(interaction, client) {
       if (!checkDJ(false)) return;
       await player.setVolume(50);
       return interaction.reply({
-        content: "🔉 Volume set to **50%**.",
+        content: `${emojis.volumeLow} Volume set to **50%**.`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
@@ -620,7 +620,7 @@ async function handlePlayerButton(interaction, client) {
       if (!checkDJ(false)) return;
       await player.setVolume(100);
       return interaction.reply({
-        content: "🔊 Volume set to **100% (Lossless Direct Passthrough)**.",
+        content: `${emojis.volumeNormal} Volume set to **100% (Lossless Direct Passthrough)**.`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
@@ -629,7 +629,7 @@ async function handlePlayerButton(interaction, client) {
       if (!checkDJ(false)) return;
       await player.setVolume(150);
       return interaction.reply({
-        content: "📢 Volume boosted to **150%**.",
+        content: `${emojis.volumeBoost} Volume boosted to **150%**.`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
@@ -643,7 +643,7 @@ async function handlePlayerButton(interaction, client) {
         { band: 3, gain: 0.10 },
       ]);
       return interaction.reply({
-        content: "🎧 **Bass Boost** preset applied.",
+        content: `${emojis.filters.bass} **Bass Boost** preset applied.`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
@@ -652,7 +652,7 @@ async function handlePlayerButton(interaction, client) {
       if (!checkDJ(false)) return;
       await player.filterManager.setTimescale({ speed: 1.25, pitch: 1.25, rate: 1.0 });
       return interaction.reply({
-        content: "⚡ **Nightcore** preset applied.",
+        content: `${emojis.filters.nightcore} **Nightcore** preset applied.`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
@@ -661,7 +661,7 @@ async function handlePlayerButton(interaction, client) {
       if (!checkDJ(false)) return;
       await player.filterManager.setRotation({ rotationHz: 0.2 });
       return interaction.reply({
-        content: "🌊 **8D Surround** preset applied.",
+        content: `${emojis.filters.spatial8D} **8D Surround** preset applied.`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
@@ -670,7 +670,7 @@ async function handlePlayerButton(interaction, client) {
       if (!checkDJ(false)) return;
       await player.filterManager.resetFilters();
       return interaction.reply({
-        content: "🔄 Equalizer & audio filters reset to flat default.",
+        content: `${emojis.filters.reset} Equalizer & audio filters reset to flat default.`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
@@ -689,7 +689,7 @@ async function handleFilterSelect(interaction, client) {
   const player = client.lavalink.getPlayer(guildId);
   if (!player) {
     return interaction.reply({
-      content: "❌ No active audio player found in this server.",
+      content: `${emojis.cross} No active audio player found in this server.`,
       flags: MessageFlags.Ephemeral,
       allowedMentions: { parse: [], users: [] },
     });
@@ -700,7 +700,7 @@ async function handleFilterSelect(interaction, client) {
     case "reset":
       await player.filterManager.resetFilters();
       return interaction.reply({
-        content: "🔄 Reset all filters to default flat EQ.",
+        content: `${emojis.filters.reset} Reset all filters to default flat EQ.`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
@@ -708,7 +708,7 @@ async function handleFilterSelect(interaction, client) {
       await player.filterManager.resetFilters();
       await player.filterManager.toggleRotation();
       return interaction.reply({
-        content: "🎧 Activated **8D Spatial Audio**.",
+        content: `${emojis.filters.spatial8D} Activated **8D Spatial Audio**.`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
@@ -716,7 +716,7 @@ async function handleFilterSelect(interaction, client) {
       await player.filterManager.resetFilters();
       await player.filterManager.toggleNightcore();
       return interaction.reply({
-        content: "⚡ Activated **Nightcore**.",
+        content: `${emojis.filters.nightcore} Activated **Nightcore**.`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
@@ -724,7 +724,7 @@ async function handleFilterSelect(interaction, client) {
       await player.filterManager.resetFilters();
       await player.filterManager.toggleVaporwave();
       return interaction.reply({
-        content: "🌊 Activated **Vaporwave**.",
+        content: `${emojis.filters.vaporwave} Activated **Vaporwave**.`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
@@ -732,14 +732,14 @@ async function handleFilterSelect(interaction, client) {
       await player.filterManager.resetFilters();
       await player.filterManager.setEqualizer([{ band: 0, gain: 0.25 }, { band: 1, gain: 0.20 }, { band: 2, gain: 0.15 }]);
       return interaction.reply({
-        content: "🔊 Activated **Bass Boost**.",
+        content: `${emojis.filters.bass} Activated **Bass Boost**.`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
     default:
       await player.filterManager.resetFilters();
       return interaction.reply({
-        content: "🔄 Reset filters.",
+        content: `${emojis.filters.reset} Reset filters.`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });

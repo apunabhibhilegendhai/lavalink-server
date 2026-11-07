@@ -1,6 +1,7 @@
 const { ActivityType } = require("discord.js");
 const logger = require("../../utils/logger");
 const stateManager = require("../../utils/stateManager");
+const multiBotCoordinator = require("../../utils/multiBotCoordinator");
 
 module.exports = {
   name: "ready",
@@ -10,10 +11,13 @@ module.exports = {
       ? `[Shard #${client.shard.ids[0]}/${client.shard.count}] `
       : "";
 
-    logger.success(`${shardInfo}Logged in as ${client.user.tag} (ID: ${client.user.id})`);
+    logger.success(`${shardInfo}Logged in as ${client.user.tag} (ID: ${client.user.id}) [Bot Index: ${client.botIndex || 0}]`);
     logger.info(
       `${shardInfo}Serving ${client.guilds.cache.size} local guild(s) and ${client.users.cache.size} cached user(s).`
     );
+
+    // Register this bot's user ID into multi-bot coordinator
+    multiBotCoordinator.registerBotIds([client.user.id]);
 
     // Initialize Lavalink Manager with Bot Client credentials
     await client.lavalink.init({

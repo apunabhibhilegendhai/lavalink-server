@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { actionText, errorText } = require("../../utils/responses");
+const emojis = require("../../utils/emojis");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -7,6 +8,9 @@ module.exports = {
     .setDescription("Swap the positions of two tracks in the queue")
     .addIntegerOption((option) =>
       option.setName("first").setDescription("First track position").setRequired(true).setMinValue(1)
+    )
+    .addIntegerOption((option) =>
+      option.setName("second").setDescription("Second track position").setRequired(true).setMinValue(1)
     ),
 
   async execute(interaction, client) {
@@ -32,7 +36,7 @@ module.exports = {
     player.queue.tracks[second - 1] = temp;
 
     return interaction.reply(
-      actionText("🔀", `Swapped track **#${first}** with track **#${second}** in queue.`)
+      actionText(emojis.shuffle, `Swapped track **#${first}** with track **#${second}** in queue.`)
     );
   },
 };

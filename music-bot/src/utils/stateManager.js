@@ -125,10 +125,10 @@ class StateManager {
 
       for (const session of data.sessions) {
         try {
-          const guild = client.guilds.cache.get(session.guildId);
+          const guild = client.guilds.cache.get(session.guildId) || await client.guilds.fetch(session.guildId).catch(() => null);
           if (!guild) continue;
 
-          const voiceChannel = guild.channels.cache.get(session.voiceChannelId);
+          const voiceChannel = guild.channels.cache.get(session.voiceChannelId) || await guild.channels.fetch(session.voiceChannelId).catch(() => null);
           if (!voiceChannel) continue;
 
           // Check if voice channel still has active human listeners
@@ -161,7 +161,14 @@ class StateManager {
           // Populate remaining queue
           if (session.queue && session.queue.length > 0) {
             for (const t of session.queue) {
-              player.queue.add(t);
+              try {
+                const built = client.lavalink.utils?.buildTrack
+                  ? client.lavalink.utils.buildTrack(t, t.requester)
+                  : t;
+                player.queue.add(built);
+              } catch (_) {
+                player.queue.add(t);
+              }
             }
           }
 
@@ -170,8 +177,13 @@ class StateManager {
 
           // Resume the track that was playing
           if (session.currentTrack) {
+            const builtCurrent = client.lavalink.utils?.buildTrack
+              ? client.lavalink.utils.buildTrack(session.currentTrack, session.currentTrack.requester)
+              : session.currentTrack;
+
             await player.play({
-              track: session.currentTrack,
+              clientTrack: builtCurrent,
+              track: { encoded: session.currentTrack.encoded },
               position: Math.max(0, (session.position || 0) + (ageMs > 0 && !session.paused ? ageMs : 0)),
               paused: session.paused,
             });

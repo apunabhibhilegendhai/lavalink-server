@@ -76,7 +76,7 @@ module.exports = {
 
       return interaction.reply(
         actionWithButton(
-          "💾",
+          emojis.playlist,
           `Created personal playlist **${created.name}**`,
           `Use \`/playlist save-queue ${created.name}\` to save songs into it.`,
           {
@@ -122,14 +122,14 @@ module.exports = {
 
       return interaction.reply(
         actionWithButton(
-          "💾",
+          emojis.playlist,
           `Saved **${savedCount} track(s)** into personal playlist **${pl.name}**`,
           `Use \`/playlist play ${pl.name}\` to stream it anywhere anytime.`,
           {
             customId: `cmd_pl_play_${pl.name}`,
             label: `Play ${pl.name}`,
             style: ButtonStyle.Primary,
-            emoji: "▶️",
+            emoji: emojis.play,
           },
           { ephemeral: true }
         )
@@ -198,12 +198,12 @@ module.exports = {
 
       return interaction.editReply(
         actionWithButtons(
-          "🎵",
+          emojis.music,
           `Loaded and queued **${loadedCount} tracks** from playlist **${pl.name}**`,
           `Streaming in <#${voiceChannel.id}>`,
           [
-            { customId: "cmd_queue", label: "View Queue", emoji: "📑", style: ButtonStyle.Secondary },
-            { customId: "btn_open_player", label: "Open Player", emoji: "⏏", style: ButtonStyle.Secondary },
+            { customId: "cmd_queue", label: "View Queue", emoji: emojis.queue, style: ButtonStyle.Secondary },
+            { customId: "btn_open_player", label: "Open Player", emoji: emojis.openPlayer, style: ButtonStyle.Secondary },
           ]
         )
       );
@@ -223,7 +223,7 @@ module.exports = {
         return interaction.reply(
           errorText(
             "You haven't saved any favorites yet!",
-            "Click [ 🤍 ] on any playing song to save it to your personal library."
+            `Click ${emojis.heart} on any playing song to save it to your personal library.`
           )
         );
       }
@@ -263,12 +263,12 @@ module.exports = {
 
       return interaction.editReply(
         actionWithButtons(
-          "🤍",
+          emojis.heart,
           `Loaded and queued **${loadedCount} favorites** from your personal collection`,
           `Streaming in <#${voiceChannel.id}>`,
           [
-            { customId: "cmd_queue", label: "View Queue", emoji: "📑", style: ButtonStyle.Secondary },
-            { customId: "btn_open_player", label: "Open Player", emoji: "⏏", style: ButtonStyle.Secondary },
+            { customId: "cmd_queue", label: "View Queue", emoji: emojis.queue, style: ButtonStyle.Secondary },
+            { customId: "btn_open_player", label: "Open Player", emoji: emojis.openPlayer, style: ButtonStyle.Secondary },
           ]
         )
       );
@@ -282,9 +282,9 @@ module.exports = {
       if ((!playlists || playlists.length === 0) && (!favorites || favorites.length === 0)) {
         return interaction.reply({
           content:
-            `📂 **Your Music Library is Empty**\n\n` +
+            `${emojis.playlist} **Your Music Library is Empty**\n\n` +
             `• Use \`/playlist create <name>\` to create a cloud playlist\n` +
-            `• Click \`[ 🤍 ]\` on the player card to bookmark songs\n\n` +
+            `• Click ${emojis.heart} on the player card to bookmark songs\n\n` +
             `-# No playlists or favorites found`,
           flags: MessageFlags.Ephemeral,
           allowedMentions: { parse: [], users: [] },
@@ -292,11 +292,11 @@ module.exports = {
       }
 
       const lines = [];
-      lines.push(`📂 **${interaction.user.username}'s Music Library**\n`);
-      lines.push(`🤍 **Saved Favorites:** \`${favorites.length} track(s)\``);
+      lines.push(`${emojis.playlist} **${interaction.user.username}'s Music Library**\n`);
+      lines.push(`${emojis.heart} **Saved Favorites:** \`${favorites.length} track(s)\``);
 
       if (playlists.length > 0) {
-        lines.push(`\n**📁 Custom Playlists:**`);
+        lines.push(`\n**${emojis.playlist} Custom Playlists:**`);
         for (const pl of playlists) {
           lines.push(`• **${pl.name}** — \`${pl.track_count} tracks\` (<t:${Math.floor(pl.created_at / 1000)}:R>)`);
         }
@@ -309,7 +309,7 @@ module.exports = {
         buttons.push({
           customId: "cmd_pl_play_favs",
           label: "Play Favorites",
-          emoji: "🤍",
+          emoji: emojis.heart,
           style: ButtonStyle.Secondary,
         });
       }
@@ -336,7 +336,7 @@ module.exports = {
       const tracks = db.getPlaylistTracks(pl.id);
       if (!tracks || tracks.length === 0) {
         return interaction.reply({
-          content: `📁 **Playlist: ${pl.name}**\n*This playlist is currently empty.*\n-# Use \`/playlist save-queue ${pl.name}\` to add tracks`,
+          content: `${emojis.playlist} **Playlist: ${pl.name}**\n*This playlist is currently empty.*\n-# Use \`/playlist save-queue ${pl.name}\` to add tracks`,
           flags: MessageFlags.Ephemeral,
           allowedMentions: { parse: [], users: [] },
         });
@@ -349,7 +349,7 @@ module.exports = {
       const remaining = tracks.length > 15 ? `\n*...and ${tracks.length - 15} more tracks*` : "";
 
       const content =
-        `📁 **Playlist: ${pl.name}** — \`${tracks.length} track(s)\`\n\n` +
+        `${emojis.playlist} **Playlist: ${pl.name}** — \`${tracks.length} track(s)\`\n\n` +
         list.join("\n") + remaining + `\n\n` +
         `-# Use \`/playlist play ${pl.name}\` to stream this playlist`;
 
@@ -357,7 +357,7 @@ module.exports = {
         .setCustomId(`cmd_pl_play_${pl.name}`)
         .setLabel(`Play ${truncate(pl.name, 20)}`)
         .setStyle(ButtonStyle.Primary)
-        .setEmoji("▶️");
+        .setEmoji(emojis.play);
 
       return interaction.reply({
         content,

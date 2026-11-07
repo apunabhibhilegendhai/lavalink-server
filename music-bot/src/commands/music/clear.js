@@ -24,7 +24,7 @@ module.exports = {
 
     return interaction.reply(
       actionText(
-        "🗑️",
+        emojis.clear,
         `Cleared **${removedCount}** track(s) from the queue.`,
         "Current song continues playing without interruption"
       )

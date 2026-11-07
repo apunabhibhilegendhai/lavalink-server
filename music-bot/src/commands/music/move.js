@@ -9,6 +9,9 @@ module.exports = {
     .setDescription("Move a track to a different position in the queue")
     .addIntegerOption((option) =>
       option.setName("from").setDescription("Current position number").setRequired(true).setMinValue(1)
+    )
+    .addIntegerOption((option) =>
+      option.setName("to").setDescription("Destination position number in queue").setRequired(true).setMinValue(1)
     ),
 
   async execute(interaction, client) {

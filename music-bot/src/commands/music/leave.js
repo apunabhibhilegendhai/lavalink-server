@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { actionText, errorText } = require("../../utils/responses");
+const emojis = require("../../utils/emojis");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -16,7 +17,7 @@ module.exports = {
     await player.destroy("User ran /leave command");
 
     return interaction.reply(
-      actionText("👋", "Disconnected from voice channel.", vcId ? `Left <#${vcId}>` : null)
+      actionText(emojis.leave, "Disconnected from voice channel.", vcId ? `Left <#${vcId}>` : null)
     );
   },
 };

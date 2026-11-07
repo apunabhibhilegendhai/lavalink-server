@@ -152,7 +152,7 @@ module.exports = {
 
         return interaction.editReply(
           actionWithButton(
-            "📁",
+            emojis.playlist,
             `Enqueued playlist **${title}** (\`${tracks.length} tracks\`)`,
             `Total Duration: \`${formatDuration(totalDuration)}\` • Requested by <@${interaction.user.id}>`,
             { customId: "cmd_queue", label: "View Queue", emoji: emojis.queue, style: ButtonStyle.Secondary }

@@ -40,7 +40,13 @@ class AudioOptimizer {
 
     try {
       // Determine guild max bitrate: 96000, 128000, 256000, or 384000
-      const maxBitrate = guild.maximumBitrate || 96000;
+      let maxBitrate = guild.maximumBitrate || 96000;
+
+      // Discord API strictly limits Stage channels to 64,000 bps max (Error 50035)
+      if (voiceChannel.type === ChannelType.GuildStageVoice) {
+        maxBitrate = Math.min(maxBitrate, 64000);
+      }
+
       const currentBitrate = voiceChannel.bitrate || 64000;
 
       if (currentBitrate < maxBitrate) {
@@ -95,9 +101,13 @@ class AudioOptimizer {
 
       // Verify node has track pre-cached or warm up search if needed
       if (!nextTrack.encoded && nextTrack.info?.uri) {
-        const res = await node.rest.resolve(nextTrack.info.uri).catch(() => null);
-        if (res?.data && !Array.isArray(res.data)) {
-          nextTrack.encoded = res.data.encoded;
+        const res = await player.search(
+          { query: nextTrack.info.uri },
+          player.queue.current?.requester || null
+        ).catch(() => null);
+
+        if (res?.tracks && res.tracks.length > 0 && res.tracks[0].encoded) {
+          nextTrack.encoded = res.tracks[0].encoded;
         }
       }
     } catch (err) {

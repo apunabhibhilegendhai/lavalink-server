@@ -40,6 +40,7 @@ jobs:
         if: steps.restore-bot-data.outputs.cache-hit != 'true'
         env:
           GH_TOKEN: ${{ secrets.ACTIONS_TRIGGER_TOKEN || github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           mkdir -p music-bot/data
           echo "Attempting to retrieve last artifact backup..."
@@ -279,26 +280,29 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add NODE_STATUS.md
           git commit -m "docs: update live public node status [skip ci]" || true
-          git push origin main || true
+          git pull --rebase origin ${{ github.ref_name }} || true
+          git push origin ${{ github.ref_name }} || true
 
       # ------------------------------------------------------------------------
       # Optional Co-located Discord Music Bot (0.1ms Localhost Loopback Latency)
       # ------------------------------------------------------------------------
       - name: Setup Node.js (for Co-located Music Bot)
-        if: ${{ secrets.DISCORD_TOKEN != '' }}
+        if: ${{ secrets.DISCORD_TOKEN != '' || secrets.DISCORD_TOKENS != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Launch Co-located Music Bot (0ms Internal Latency)
-        if: ${{ secrets.DISCORD_TOKEN != '' }}
+        if: ${{ secrets.DISCORD_TOKEN != '' || secrets.DISCORD_TOKENS != '' }}
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_TOKENS: ${{ secrets.DISCORD_TOKENS || '' }}
+          ALL_BOT_IDS: ${{ secrets.ALL_BOT_IDS || '' }}
           CLIENT_ID: ${{ secrets.CLIENT_ID || '' }}
           GUILD_ID: ${{ secrets.GUILD_ID || '' }}
           NODE_PASSWORD: ${{ secrets.LAVALINK_PASSWORD || 'youshallnotpass' }}
         run: |
-          echo "DISCORD_TOKEN secret detected! Launching co-located Music Bot on loopback 127.0.0.1:4998..."
+          echo "Discord token secret detected! Launching co-located Music Bot on loopback 127.0.0.1:4998..."
           cd music-bot
           npm ci --prefer-offline --no-audit
 
@@ -309,6 +313,8 @@ jobs:
 
           nohup env \
             DISCORD_TOKEN="$DISCORD_TOKEN" \
+            DISCORD_TOKENS="$DISCORD_TOKENS" \
+            ALL_BOT_IDS="$ALL_BOT_IDS" \
             CLIENT_ID="$CLIENT_ID" \
             GUILD_ID="$GUILD_ID" \
             LAVALINK_HOST="127.0.0.1" \
@@ -418,7 +424,8 @@ jobs:
             git add music-bot/data/active_sessions.json
           fi
           git commit -m "chore(data): auto-sync bot database & active sessions [skip ci]" || true
-          git push origin main || true
+          git pull --rebase origin ${{ github.ref_name }} || true
+          git push origin ${{ github.ref_name }} || true
 
   # ============================================================================
   # RECOVERY JOB (Self-Healing 24/7 Loop)

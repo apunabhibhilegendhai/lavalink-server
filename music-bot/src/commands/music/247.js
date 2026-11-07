@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { actionText, errorText } = require("../../utils/responses");
+const emojis = require("../../utils/emojis");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -18,7 +19,7 @@ module.exports = {
 
     return interaction.reply(
       actionText(
-        "⏱️",
+        emojis.time,
         `24/7 Voice Channel mode **${newState ? "ENABLED" : "DISABLED"}**.`,
         newState
           ? "Bot will stay in voice channel indefinitely even when idle or channel is empty"

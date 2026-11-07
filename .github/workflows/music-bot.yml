@@ -43,6 +43,7 @@ jobs:
         if: steps.restore-bot-data.outputs.cache-hit != 'true'
         env:
           GH_TOKEN: ${{ secrets.ACTIONS_TRIGGER_TOKEN || github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           mkdir -p music-bot/data
           echo "Attempting to retrieve last artifact backup..."
@@ -99,6 +100,8 @@ jobs:
       - name: Start Music Bot Sharder
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_TOKENS: ${{ secrets.DISCORD_TOKENS || '' }}
+          ALL_BOT_IDS: ${{ secrets.ALL_BOT_IDS || '' }}
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
           GUILD_ID: ${{ secrets.GUILD_ID || '' }}
           LAVALINK_HOST: ${{ secrets.LAVALINK_HOST || env.PARSED_HOST }}
@@ -107,8 +110,8 @@ jobs:
           LAVALINK_SECURE: ${{ secrets.LAVALINK_SECURE || env.PARSED_SECURE }}
           AUTO_MAXIMIZE_BITRATE: "true"
         run: |
-          if [ -z "$DISCORD_TOKEN" ]; then
-            echo "::error::DISCORD_TOKEN secret is missing! Please configure it in your repository secrets."
+          if [ -z "$DISCORD_TOKEN" ] && [ -z "$DISCORD_TOKENS" ]; then
+            echo "::error::Neither DISCORD_TOKEN nor DISCORD_TOKENS secret is configured! Please configure bot token(s) in repository secrets."
             exit 1
           fi
 
@@ -179,7 +182,8 @@ jobs:
             git add music-bot/data/active_sessions.json
           fi
           git commit -m "chore(data): auto-sync bot database & active sessions [skip ci]" || true
-          git push origin main || true
+          git pull --rebase origin ${{ github.ref_name }} || true
+          git push origin ${{ github.ref_name }} || true
 
   # ============================================================================
   # RECOVERY JOB (Self-Healing 24/7 Loop for Bot)

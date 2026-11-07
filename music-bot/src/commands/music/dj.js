@@ -82,7 +82,7 @@ module.exports = {
     if (subcommand === "clear") {
       db.setDjSettings(interaction.guildId, null, false);
       return interaction.reply(
-        actionText("🔄", "Cleared DJ role configuration.", "DJ Mode is now disabled")
+        actionText(emojis.reset, "Cleared DJ role configuration.", "DJ Mode is now disabled")
       );
     }
   },

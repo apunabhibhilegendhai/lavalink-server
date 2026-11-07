@@ -30,42 +30,84 @@ class CommandContext {
     if (this.isInteraction) {
       this.options = interaction.options;
     } else {
+      // Determine if the command uses subcommands (e.g. .playlist create or .dj set)
+      const hasSubcommand = ["playlist", "dj"].includes(commandName?.toLowerCase());
+      const effectiveArgs = hasSubcommand ? this.args.slice(1) : this.args;
+
       this.options = {
-        getString: (name) => {
+        getSubcommand: () => {
           if (!this.args || this.args.length === 0) return null;
-          // For song search queries, preserve the entire remainder of the string with spaces!
-          if (name === "query") return this.args.join(" ");
+          return this.args[0].toLowerCase();
+        },
+        getSubcommandGroup: () => null,
+
+        getString: (name) => {
+          if (!effectiveArgs || effectiveArgs.length === 0) return null;
+          // For song search queries and playlist names, preserve the entire remainder with spaces!
+          if (name === "query" || name === "name") return effectiveArgs.join(" ");
           if (name === "source") {
-            const match = this.args.find((a) =>
+            const match = effectiveArgs.find((a) =>
               /^(spsearch|ytsearch|ytmsearch|scsearch|jssearch)$/i.test(a)
             );
             return match ? match.toLowerCase() : null;
           }
-          if (name === "time") return this.args[0] || null;
-          if (name === "name") return this.args.join(" ");
-          return this.args[0] || null;
+          if (name === "time" || name === "new" || name === "action") return effectiveArgs[0] || null;
+          return effectiveArgs.join(" ") || null;
         },
+
         getInteger: (name) => {
-          if (!this.args || this.args.length === 0) return null;
-          const val = parseInt(this.args[0], 10);
+          if (!effectiveArgs || effectiveArgs.length === 0) return null;
+          if (name === "from" || name === "first") {
+            const val = parseInt(effectiveArgs[0], 10);
+            return isNaN(val) ? null : val;
+          }
+          if (name === "to" || name === "second") {
+            const targetStr = effectiveArgs.length > 1 ? effectiveArgs[1] : effectiveArgs[0];
+            const val = parseInt(targetStr, 10);
+            return isNaN(val) ? null : val;
+          }
+          if (name === "level" || name === "position") {
+            const val = parseInt(effectiveArgs[0], 10);
+            return isNaN(val) ? null : val;
+          }
+          const val = parseInt(effectiveArgs[0], 10);
           return isNaN(val) ? null : val;
         },
+
         getNumber: (name) => {
-          if (!this.args || this.args.length === 0) return null;
-          const val = parseFloat(this.args[0]);
+          if (!effectiveArgs || effectiveArgs.length === 0) return null;
+          const val = parseFloat(effectiveArgs[0]);
           return isNaN(val) ? null : val;
         },
+
         getBoolean: (name) => {
-          if (!this.args || this.args.length === 0) return null;
-          const first = this.args[0].toLowerCase();
+          if (!effectiveArgs || effectiveArgs.length === 0) return null;
+          const first = effectiveArgs[0].toLowerCase();
           if (["true", "yes", "on", "enable", "1"].includes(first)) return true;
           if (["false", "no", "off", "disable", "0"].includes(first)) return false;
           return null;
         },
+
         getUser: () => this.message.mentions?.users?.first() || null,
         getMember: () => this.message.mentions?.members?.first() || null,
-        getChannel: () => this.message.mentions?.channels?.first() || null,
-        getRole: () => this.message.mentions?.roles?.first() || null,
+        getRole: (name) => {
+          if (this.message.mentions?.roles?.size > 0) {
+            return this.message.mentions.roles.first();
+          }
+          if (effectiveArgs[0]) {
+            return this.guild?.roles?.cache?.get(effectiveArgs[0]) || null;
+          }
+          return null;
+        },
+        getChannel: (name) => {
+          if (this.message.mentions?.channels?.size > 0) {
+            return this.message.mentions.channels.first();
+          }
+          if (effectiveArgs[0]) {
+            return this.guild?.channels?.cache?.get(effectiveArgs[0]) || null;
+          }
+          return null;
+        },
       };
     }
   }
@@ -86,6 +128,18 @@ class CommandContext {
   }
 
   /**
+   * Sanitize payload for standard Discord messages (strips ephemeral flags)
+   */
+  _sanitizeMessagePayload(payload) {
+    const msgPayload = typeof payload === "string" ? { content: payload } : { ...payload };
+    // Normal text messages cannot be ephemeral: strip ephemeral properties
+    if ("ephemeral" in msgPayload) delete msgPayload.ephemeral;
+    if ("flags" in msgPayload) delete msgPayload.flags;
+    msgPayload.allowedMentions = { repliedUser: false, parse: [] };
+    return msgPayload;
+  }
+
+  /**
    * Send command reply
    */
   async reply(payload) {
@@ -94,8 +148,7 @@ class CommandContext {
       return this.interaction.reply(payload);
     }
 
-    const msgPayload = typeof payload === "string" ? { content: payload } : { ...payload };
-    msgPayload.allowedMentions = { repliedUser: false, parse: [] };
+    const msgPayload = this._sanitizeMessagePayload(payload);
     this._sentMessage = await this.message.reply(msgPayload);
     return this._sentMessage;
   }
@@ -109,8 +162,7 @@ class CommandContext {
       return this.interaction.editReply(payload);
     }
 
-    const msgPayload = typeof payload === "string" ? { content: payload } : { ...payload };
-    msgPayload.allowedMentions = { repliedUser: false, parse: [] };
+    const msgPayload = this._sanitizeMessagePayload(payload);
 
     if (this._sentMessage) {
       return this._sentMessage.edit(msgPayload);
@@ -128,8 +180,7 @@ class CommandContext {
       return this.interaction.followUp(payload);
     }
 
-    const msgPayload = typeof payload === "string" ? { content: payload } : { ...payload };
-    msgPayload.allowedMentions = { repliedUser: false, parse: [] };
+    const msgPayload = this._sanitizeMessagePayload(payload);
     return this.channel.send(msgPayload);
   }
 }

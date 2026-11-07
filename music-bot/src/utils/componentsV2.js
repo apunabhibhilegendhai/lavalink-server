@@ -75,10 +75,10 @@ function buildComponentsV2Payload(player, actionRows = []) {
 
   const remainingMs = track.info.duration ? Math.max(0, track.info.duration - player.position) : 0;
   const endsAtUnix = Math.floor((Date.now() + remainingMs) / 1000);
-  const liveCountdown = track.info.isStream ? "🔴 `[LIVE]`" : `<t:${endsAtUnix}:R>`;
+  const liveCountdown = track.info.isStream ? `${emojis.live} \`[LIVE]\`` : `<t:${endsAtUnix}:R>`;
 
   const progressSlider = track.info.isStream
-    ? "🔴 `[LIVE STREAM]`"
+    ? `${emojis.live} \`[LIVE STREAM]\``
     : `${formatDuration(player.position)} ${createProgressBar(player.position, track.info.duration, 12)} ${formatDuration(track.info.duration)}`;
 
   // Eara Format Line 1: [Title](URI) — Artist

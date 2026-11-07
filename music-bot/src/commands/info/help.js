@@ -6,6 +6,7 @@ const {
   EmbedBuilder,
 } = require("discord.js");
 const config = require("../../config");
+const emojis = require("../../utils/emojis");
 
 function getCategoryEmbed(category, client) {
   const embed = new EmbedBuilder().setColor(config.colors.surface || 0x2b2d31).setTimestamp();
@@ -13,7 +14,7 @@ function getCategoryEmbed(category, client) {
   switch (category) {
     case "playback":
       embed
-        .setTitle("🎶 Music Playback Commands")
+        .setTitle(`${emojis.music} Music Playback Commands`)
         .setDescription("Commands to find, stream, and control music playback:")
         .addFields(
           { name: "`/play <query>`", value: "Stream songs, albums, or playlists from Spotify, YouTube, SoundCloud, JioSaavn with live autocomplete." },
@@ -32,7 +33,7 @@ function getCategoryEmbed(category, client) {
 
     case "queue":
       embed
-        .setTitle("📑 Queue & Track Management")
+        .setTitle(`${emojis.queue} Queue & Track Management`)
         .setDescription("Commands to inspect, modify, and organize the server queue:")
         .addFields(
           { name: "`/queue [page]`", value: "Interactive paginated view of upcoming tracks with duration & requester." },
@@ -49,7 +50,7 @@ function getCategoryEmbed(category, client) {
 
     case "filters":
       embed
-        .setTitle("🎛️ Audio DSP Filters & Equalizers")
+        .setTitle(`${emojis.equalizer} Audio DSP Filters & Equalizers`)
         .setDescription("Real-time digital audio filters applied directly on the Lavalink node:")
         .addFields(
           { name: "`/filter preset: normalizer`", value: "Sound normalizer & dynamic limiter to balance audio spikes." },
@@ -66,7 +67,7 @@ function getCategoryEmbed(category, client) {
 
     case "system":
       embed
-        .setTitle("⚙️ System & Server Admin Controls")
+        .setTitle(`${emojis.gear} System & Server Admin Controls`)
         .setDescription("Bot connectivity, diagnostics, and server configuration:")
         .addFields(
           { name: "`/setup-channel [channel]`", value: "Configure a dedicated song-request channel with permanent Eara player." },
@@ -82,7 +83,7 @@ function getCategoryEmbed(category, client) {
 
     default:
       embed
-        .setTitle("⚡ Pulse Music Bot - Command Directory")
+        .setTitle(`${emojis.help} Pulse Music Bot - Command Directory`)
         .setDescription(
           "Welcome to the most advanced Discord Music Bot, powered by your self-hosted **Lavalink v4.2.2** node.\n\n" +
           "**Key Highlights:**\n" +
@@ -91,13 +92,13 @@ function getCategoryEmbed(category, client) {
           "• **Interactive Dashboard:** Complete button controller and progress bar for every song\n" +
           "• **Continuous Flow:** Autoplay recommendations & 24/7 Voice Channel Mode\n" +
           "• **Synchronized Lyrics:** Direct real-time lyrics display synced to playback\n\n" +
-          "👉 *Select a category from the dropdown menu below to view detailed command guides.*"
+          `${emojis.pointer} *Select a category from the dropdown menu below to view detailed command guides.*`
         )
         .addFields(
-          { name: "🎶 Playback", value: "10 commands", inline: true },
-          { name: "📑 Queue", value: "8 commands", inline: true },
-          { name: "🎛️ Audio Filters", value: "8 presets", inline: true },
-          { name: "⚙️ System", value: "7 commands", inline: true }
+          { name: `${emojis.music} Playback`, value: "10 commands", inline: true },
+          { name: `${emojis.queue} Queue`, value: "8 commands", inline: true },
+          { name: `${emojis.equalizer} Audio Filters`, value: "8 presets", inline: true },
+          { name: `${emojis.gear} System`, value: "7 commands", inline: true }
         );
       break;
   }
@@ -108,33 +109,33 @@ function getCategoryEmbed(category, client) {
 function getCategoryRow() {
   const menu = new StringSelectMenuBuilder()
     .setCustomId("select_help_category")
-    .setPlaceholder("📖 Explore Command Categories...")
+    .setPlaceholder("Explore Command Categories...")
     .addOptions(
       new StringSelectMenuOptionBuilder()
         .setLabel("Overview")
         .setDescription("General introduction and feature highlights")
         .setValue("overview")
-        .setEmoji("⚡"),
+        .setEmoji(emojis.help),
       new StringSelectMenuOptionBuilder()
         .setLabel("Music Playback")
         .setDescription("Play, search, pause, resume, skip, lyrics, grab")
         .setValue("playback")
-        .setEmoji("🎶"),
+        .setEmoji(emojis.music),
       new StringSelectMenuOptionBuilder()
         .setLabel("Queue Management")
         .setDescription("Queue list, shuffle, loop, clear, remove, move, autoplay")
         .setValue("queue")
-        .setEmoji("📑"),
+        .setEmoji(emojis.queue),
       new StringSelectMenuOptionBuilder()
         .setLabel("Audio Filters & EQ")
         .setDescription("8D audio, bassboost, nightcore, vaporwave, karaoke, EQ")
         .setValue("filters")
-        .setEmoji("🎛️"),
+        .setEmoji(emojis.equalizer),
       new StringSelectMenuOptionBuilder()
         .setLabel("System & Diagnostics")
         .setDescription("24/7 mode, join, leave, stats, ping")
         .setValue("system")
-        .setEmoji("⚙️")
+        .setEmoji(emojis.gear)
     );
 
   return new ActionRowBuilder().addComponents(menu);

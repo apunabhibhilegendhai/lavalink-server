@@ -93,7 +93,7 @@ module.exports = {
 
       return interaction.editReply(
         actionWithButton(
-          "🎛️",
+          emojis.equalizer,
           `Dedicated song request channel configured in <#${channel.id}>!`,
           "Interactive player card is live · Auto-cleans song request messages · Just type song names",
           {

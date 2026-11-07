@@ -58,7 +58,7 @@ function buildPlaceholderPayload() {
 
   const embed = new EmbedBuilder()
     .setColor(0x2b2d31)
-    .setTitle("🎶 No Song Currently Playing")
+    .setTitle(`${emojis.music} No Song Currently Playing`)
     .setDescription(
       "Join a voice channel and **send a song name or link** below to start streaming audio!\n\n" +
       "-# Supports Spotify, YouTube, SoundCloud, JioSaavn & Web Streams"
@@ -103,18 +103,18 @@ async function updateRequestChannelDashboard(client, guildId, player = null) {
  * Handle incoming plain text song requests in the dedicated channel
  */
 async function handleSongRequestMessage(message, client) {
-  if (message.author.bot || !message.guild) return;
+  if (message.author.bot || !message.guild) return false;
 
   const settings = db.getGuildSettings(message.guild.id);
   if (!settings?.request_channel_id || message.channel.id !== settings.request_channel_id) {
-    return;
+    return false;
   }
 
   // Delete user's message immediately to keep the channel 100% clean
   message.delete().catch(() => {});
 
   const query = message.content.trim();
-  if (!query) return;
+  if (!query) return true;
 
   const member = message.member;
   const voiceChannel = member?.voice?.channel;
@@ -124,7 +124,7 @@ async function handleSongRequestMessage(message, client) {
       content: `${emojis.warn} ${message.author}, you must be connected to a voice channel to request songs!`,
     }).catch(() => null);
     if (reply) setTimeout(() => reply.delete().catch(() => {}), 6000);
-    return;
+    return true;
   }
 
   let player = client.lavalink.getPlayer(message.guild.id);
@@ -153,7 +153,7 @@ async function handleSongRequestMessage(message, client) {
         content: `${emojis.cross} ${message.author}, no audio results found for \`${truncate(query, 50)}\`.`,
       }).catch(() => null);
       if (reply) setTimeout(() => reply.delete().catch(() => {}), 6000);
-      return;
+      return true;
     }
 
     if (res.loadType === "playlist") {
@@ -179,6 +179,8 @@ async function handleSongRequestMessage(message, client) {
   } catch (err) {
     logger.error("Failed to process song request message:", err.message);
   }
+
+  return true;
 }
 
 module.exports = {

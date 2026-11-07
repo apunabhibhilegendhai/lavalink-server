@@ -78,7 +78,7 @@ module.exports = {
       autoplayManager.clearHistory(player.guildId);
       return interaction.reply(
         actionText(
-          "🔄",
+          emojis.reset,
           "Cleared autoplay playback history cache.",
           "All related tracks can now be recommended fresh"
         )

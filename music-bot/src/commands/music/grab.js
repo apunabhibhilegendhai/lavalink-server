@@ -27,7 +27,7 @@ module.exports = {
       );
 
       const dmContent =
-        `💾 **Saved Track: [${cleanTitle}](${uri})**\n` +
+        `${emojis.save} **Saved Track: [${cleanTitle}](${uri})**\n` +
         `• **Artist:** \`${track.info.author || "Unknown"}\`\n` +
         `• **Duration:** \`${formatDuration(track.info.duration)}\`\n` +
         `• **Platform:** ${getSourceBadge(track.info.sourceName)}\n` +
@@ -42,7 +42,7 @@ module.exports = {
 
       return interaction.reply(
         actionWithButton(
-          "💾",
+          emojis.save,
           `Sent **[${cleanTitle}](${uri})** straight to your Direct Messages!`,
           "Check your private DMs to listen anytime",
           {

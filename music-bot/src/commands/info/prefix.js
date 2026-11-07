@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require("discord.js");
 const { actionText, errorText, successText } = require("../../utils/responses");
+const emojis = require("../../utils/emojis");
 const db = require("../../database/db");
 const config = require("../../config");
 
@@ -25,7 +26,7 @@ module.exports = {
     if (!newPrefix) {
       return interaction.reply(
         actionText(
-          "⚙️",
+          emojis.gear,
           `Current server prefix is: \`${currentPrefix}\``,
           `You can run commands using \`${currentPrefix}play\` or with flexible spacing: \`${currentPrefix} play <song>\`.\nTo change it, use \`/prefix new:<prefix>\` or \`${currentPrefix}prefix <new>\`.`
         )

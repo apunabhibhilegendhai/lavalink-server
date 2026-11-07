@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { actionText, errorText, warnText } = require("../../utils/responses");
+const emojis = require("../../utils/emojis");
 const config = require("../../config");
 const audioOptimizer = require("../../utils/audioOptimizer");
 
@@ -24,7 +25,7 @@ module.exports = {
       await player.connect();
     audioOptimizer.maximizeVoiceBitrate(voiceChannel, client);
       return interaction.reply(
-        actionText("🔊", `Moved to voice channel <#${voiceChannel.id}>.`)
+        actionText(emojis.volumeNormal, `Moved to voice channel <#${voiceChannel.id}>.`)
       );
     }
 
@@ -41,7 +42,7 @@ module.exports = {
     audioOptimizer.maximizeVoiceBitrate(voiceChannel, client);
 
     return interaction.reply(
-      actionText("🔊", `Connected to <#${voiceChannel.id}>.`, "Use `/play` to stream audio")
+      actionText(emojis.volumeNormal, `Connected to <#${voiceChannel.id}>.`, "Use `/play` to stream audio")
     );
   },
 };

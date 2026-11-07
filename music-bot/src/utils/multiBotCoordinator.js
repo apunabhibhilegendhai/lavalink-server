@@ -9,7 +9,13 @@ const logger = require("./logger");
 class MultiBotCoordinator {
   constructor() {
     // Array of all known bot client IDs in the pool
-    this.allBotIds = [];
+    const envIds = process.env.ALL_BOT_IDS
+      ? process.env.ALL_BOT_IDS.split(",").map((s) => s.trim()).filter(Boolean)
+      : [];
+    if (process.env.CLIENT_ID && !envIds.includes(process.env.CLIENT_ID)) {
+      envIds.push(process.env.CLIENT_ID.trim());
+    }
+    this.allBotIds = envIds;
   }
 
   /**

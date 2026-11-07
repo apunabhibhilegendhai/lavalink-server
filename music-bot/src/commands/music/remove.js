@@ -2,6 +2,7 @@ const { SlashCommandBuilder } = require("discord.js");
 const { actionText, errorText } = require("../../utils/responses");
 const { truncate } = require("../../utils/formatters");
 const { cleanTrackTitle } = require("../../utils/sourceManager");
+const emojis = require("../../utils/emojis");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -31,7 +32,7 @@ module.exports = {
 
     return interaction.reply(
       actionText(
-        "🗑️",
+        emojis.clear,
         `Removed **${title}** (\`#${pos}\`) from the queue.`,
         `${player.queue.tracks.length} track(s) remaining in queue`
       )

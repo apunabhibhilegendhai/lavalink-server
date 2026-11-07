@@ -68,7 +68,7 @@ module.exports = {
     const songTitle = truncate(cleanTrackTitle(player.queue.current.info.title), 36);
     return interaction.reply(
       actionText(
-        "🗳️",
+        emojis.vote,
         `Voted to skip **${songTitle}**.`,
         `Progress: **${currentVotes} / ${requiredVotes}** votes required to skip`
       )

@@ -2,6 +2,7 @@ const { SlashCommandBuilder } = require("discord.js");
 const { actionText, errorText } = require("../../utils/responses");
 const { truncate } = require("../../utils/formatters");
 const { cleanTrackTitle } = require("../../utils/sourceManager");
+const emojis = require("../../utils/emojis");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -22,7 +23,7 @@ module.exports = {
     const title = truncate(cleanTrackTitle(player.queue.current.info.title), 40);
 
     return interaction.reply(
-      actionText("🔄", `Replaying **${title}** from 00:00.`)
+      actionText(emojis.reset, `Replaying **${title}** from 00:00.`)
     );
   },
 };

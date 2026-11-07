@@ -10,6 +10,7 @@ const {
 const { errorEmbed } = require("../../utils/embed");
 const { formatDuration, truncate, createProgressBar, formatRequester } = require("../../utils/formatters");
 const { getPlatformTheme, cleanTrackTitle } = require("../../utils/sourceManager");
+const emojis = require("../../utils/emojis");
 const config = require("../../config");
 
 module.exports = {
@@ -24,7 +25,7 @@ module.exports = {
     const player = client.lavalink.getPlayer(interaction.guildId);
     if (!player || (!player.queue.current && player.queue.tracks.length === 0)) {
       return interaction.reply({
-        content: "📑 The queue is currently empty. Use `/play` to add tracks!",
+        content: `${emojis.queue} The queue is currently empty. Use \`/play\` to add tracks!`,
         flags: MessageFlags.Ephemeral,
         allowedMentions: { parse: [], users: [] },
       });
@@ -60,10 +61,10 @@ module.exports = {
         const cleanTitle = truncate(cleanTrackTitle(currentTrack.info.title), 50);
         const cleanAuthor = truncate(currentTrack.info.author, 30);
         const progress = currentTrack.info.isStream
-          ? "🔴 `[LIVE STREAM]`"
+          ? `${emojis.live} \`[LIVE STREAM]\``
           : `\`${formatDuration(player.position)}\` ${createProgressBar(player.position, currentTrack.info.duration, 11)} \`${formatDuration(currentTrack.info.duration)}\``;
 
-        embed.setTitle(`▶️ Now Streaming: ${cleanTitle}`);
+        embed.setTitle(`${emojis.play} Now Streaming: ${cleanTitle}`);
         embed.setURL(currentTrack.info.uri || "https://discord.com");
 
         if (currentTrack.info.artworkUrl) {
@@ -73,8 +74,8 @@ module.exports = {
         embed.setDescription(
           `by **${cleanAuthor}** • ${theme.badge}\n` +
           `${progress}\n` +
-          `-# 👤 Requested by ${formatRequester(currentTrack.requester)}\n\n` +
-          `**📑 Upcoming Tracks:**`
+          `-# ${emojis.user} Requested by ${formatRequester(currentTrack.requester)}\n\n` +
+          `**${emojis.queue} Upcoming Tracks:**`
         );
       }
 
@@ -148,7 +149,7 @@ module.exports = {
     collector.on("collect", async (i) => {
       if (i.user.id !== interaction.user.id) {
         return i.reply({
-          content: "⚠️ Only the user who ran `/queue` can navigate this menu.",
+          content: `${emojis.warn} Only the user who ran \`/queue\` can navigate this menu.`,
           flags: MessageFlags.Ephemeral,
           allowedMentions: { parse: [], users: [] },
         });
